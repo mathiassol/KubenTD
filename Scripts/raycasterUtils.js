@@ -1,37 +1,69 @@
 import * as THREE from 'three';
-function initRaycasting(scene, camera, outline, floorMesh) {
-    let intersects = [];
+import { createOutline } from './createOutline.js';
+
+function initRaycasting(scene, camera, floorMesh, hoverableObjects, onObjectClick) {
+    let hoveredObject = null;
+    let outlineMesh = null;
+
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
     window.addEventListener('mousemove', onMouseMove, false);
+    window.addEventListener('mousedown', onMouseClick, false);
 
     function onMouseMove(event) {
         mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-        scene.updateMatrixWorld();
+        scene.updateMatrixWorld(true);
         raycaster.setFromCamera(mouse, camera);
-        intersects = getIntersects(raycaster);
-
-        outline.visible = false;
+        const intersects = getIntersects(raycaster);
 
         if (intersects.length > 0) {
-            outline.visible = true;
+            const newHoveredObject = intersects[0].object;
+
+            if (hoverableObjects.includes(newHoveredObject) && hoveredObject !== newHoveredObject) {
+                removeOutline();
+                hoveredObject = newHoveredObject;
+                addOutline(hoveredObject);
+            }
         } else {
-            outline.visible = false;
+            removeOutline();
+            hoveredObject = null;
+        }
+    }
+
+    function onMouseClick(event) {
+        if (event.button === 0 && hoveredObject) {
+            console.log('Clicked object:', hoveredObject.name || hoveredObject);
+            if (onObjectClick) {
+                onObjectClick(hoveredObject.position);
+            }
         }
     }
 
     function getIntersects(raycaster) {
-        const objects = [];
-        scene.traverse(function (object) {
-            if (object instanceof THREE.Mesh && object !== floorMesh) {
-                objects.push(object);
-            }
-        });
+        return raycaster.intersectObjects(hoverableObjects);
+    }
 
-        return raycaster.intersectObjects(objects);
+    function addOutline(target) {
+        if (!target) return;
+        outlineMesh = createOutline(target);
+        scene.add(outlineMesh);
+
+        target.updateMatrixWorld(true);
+        outlineMesh.matrix.copy(target.matrixWorld);
+        outlineMesh.matrix.decompose(outlineMesh.position, outlineMesh.quaternion, outlineMesh.scale);
+    }
+
+    function removeOutline() {
+        if (outlineMesh) {
+            scene.remove(outlineMesh);
+            outlineMesh.geometry.dispose();
+            outlineMesh.material.dispose();
+            outlineMesh = null;
+        }
     }
 }
+
 export { initRaycasting };
