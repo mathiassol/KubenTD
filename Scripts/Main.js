@@ -59,16 +59,6 @@ const boxMesh2 = new THREE.Mesh(geometry, material);
 boxMesh2.position.z = -10;
 scene.add(boxMesh2);
 
-function handleObjectClick(position) {
-    console.log(`Clicked object position: x=${position.x}, y=${position.y}, z=${position.z}`);
-
-    controls.target.set(position.x, position.y, position.z);
-    controls.update();
-}
-const hoverableObjects = [boxMesh2, boxMesh];
-initRaycasting(scene, camera, floorMesh, hoverableObjects, handleObjectClick);
-
-
 window.addEventListener('keydown', function(event) {
     if (event.key === 'k' || event.key === 'K') {
         controls.target.set(15, 3, 15)
@@ -82,7 +72,6 @@ const healthBar = document.getElementById('health-bar');
 function updateHealthBar() {
     healthBar.style.width = `${playerHealth}%`;
     if (playerHealth <= 0) {
-        alert("Game Over! The enemy reached the end!");
     }
 }
 
@@ -96,23 +85,70 @@ const path = [
     new THREE.Vector3(60, 0, -20),
     new THREE.Vector3(80, 0, 0)
 ];
-const enemySpeed = 10;
-const enemyHealth = 10;
-const enemy = new Enemy(scene, path, enemySpeed, enemyHealth);
+const enemies = {};
 
-function draw() {
-    const deltaTime = clock.getDelta();
-    enemy.update(deltaTime);
+const enemy1 = new Enemy(scene, path, 10, 100);
+enemies[enemy1.id] = enemy1;
 
-    if (enemy.currentWaypointIndex === 0 && enemy.enemy.position.distanceTo(path[path.length - 1]) < 0.1) {
-        playerHealth -= enemy.enemyHealth;
-        updateHealthBar();
+const enemy2 = new Enemy(scene, path, 20, 40);
+enemies[enemy2.id] = enemy2;
+function onEnemyReachedEnd(enemy) {
+    playerHealth -= enemy.health;
+
+    if (playerHealth < 0) {
+        playerHealth = 0;
     }
-    renderer.render(scene, camera);
-    renderer.setAnimationLoop(draw);
+
+    updateHealthBar();
+
+    scene.remove(enemy.enemy);
+    delete enemies[enemy.id];
+}
+
+let selectedObject = null;
+
+function handleObjectClick(position, object) {
+    console.log(`Clicked object at: x=${position.x}, y=${position.y}, z=${position.z}`);
+
+    selectedObject = object; // Store the clicked object
+
+    // Set initial camera target
+    controls.target.set(position.x, position.y, position.z);
+    controls.update();
+}
+function updateCamera(sObj) {
+    if (sObj) {
+        const targetPosition = sObj.position.clone();
+        console.log(targetPosition);
+        targetPosition.y += 5; // Adjust height for better tracking
+
+        // Smoothly interpolate camera position
+        camera.position.lerp(targetPosition.clone().add(new THREE.Vector3(0, 10, 20)), 0.1);
+        controls.target.lerp(targetPosition, 0.1);
+        controls.update();
+    }
 }
 
 
+const hoverableObjects = [boxMesh2, boxMesh];
+for (let id in enemies) {
+    hoverableObjects.push(enemies[id].enemy);
+}
+
+initRaycasting(scene, camera, floorMesh, hoverableObjects, handleObjectClick);
+
+function draw() {
+    const deltaTime = clock.getDelta();
+
+    for (let id in enemies) {
+        let enemy = enemies[id];
+        enemy.update(deltaTime, onEnemyReachedEnd);
+    }
+    updateCamera(selectedObject)
+
+    renderer.render(scene, camera);
+    renderer.setAnimationLoop(draw);
+}
 
 function setSize() {
     camera.aspect = window.innerWidth / window.innerHeight;

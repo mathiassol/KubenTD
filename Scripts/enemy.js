@@ -1,36 +1,40 @@
 import * as THREE from 'three';
 
-let move = true;
+let enemyCounter = 0;
 
 export default class Enemy {
-    constructor(scene, path, speed) {
+    constructor(scene, path, speed, enemyHealth) {
         this.scene = scene;
         this.path = path;
         this.speed = speed;
+        this.health = enemyHealth;
         this.currentWaypointIndex = 0;
+        this.isMoving = true;
 
+        this.id = `enemy_${enemyCounter++}`;
         this.enemyGeometry = new THREE.SphereGeometry(2, 16, 16);
         this.enemyMaterial = new THREE.MeshLambertMaterial({ color: 'red' });
         this.enemy = new THREE.Mesh(this.enemyGeometry, this.enemyMaterial);
 
         this.scene.add(this.enemy);
     }
-    update(deltaTime) {
+    update(deltaTime, onEnemyReachedEnd) {
+        if (!this.isMoving) return;
+
         const target = this.path[this.currentWaypointIndex];
         const direction = new THREE.Vector3().subVectors(target, this.enemy.position);
         const distance = direction.length();
 
-        if (distance > 0.1 && move === true) {
+        if (distance > 0.5) {
             const moveDistance = this.speed * deltaTime;
             direction.normalize().multiplyScalar(moveDistance);
             this.enemy.position.add(direction);
         } else {
             this.currentWaypointIndex = (this.currentWaypointIndex + 1) % this.path.length;
-            console.log(this.currentWaypointIndex);
-            if (this.currentWaypointIndex === 0){
-                console.log("done")
-                move = false;
 
+            if (this.currentWaypointIndex === 0) {
+                this.isMoving = false;
+                onEnemyReachedEnd(this);
             }
         }
     }

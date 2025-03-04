@@ -51,9 +51,17 @@ function initRaycasting(scene, camera, floorMesh, hoverableObjects, onObjectClic
         outlineMesh = createOutline(target);
         scene.add(outlineMesh);
 
-        target.updateMatrixWorld(true);
-        outlineMesh.matrix.copy(target.matrixWorld);
-        outlineMesh.matrix.decompose(outlineMesh.position, outlineMesh.quaternion, outlineMesh.scale);
+        updateOutline(); // Initial positioning
+    }
+
+    function updateOutline() {
+        if (outlineMesh && hoveredObject) {
+            hoveredObject.updateMatrixWorld(true);
+            outlineMesh.matrix.copy(hoveredObject.matrixWorld);
+            outlineMesh.matrix.decompose(outlineMesh.position, outlineMesh.quaternion, outlineMesh.scale);
+
+            requestAnimationFrame(updateOutline); // Keep updating while hovering
+        }
     }
 
     function removeOutline() {
@@ -64,6 +72,7 @@ function initRaycasting(scene, camera, floorMesh, hoverableObjects, onObjectClic
             outlineMesh = null;
         }
     }
+
 }
 
 export { initRaycasting };
