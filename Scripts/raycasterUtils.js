@@ -37,7 +37,8 @@ function initRaycasting(scene, camera, floorMesh, hoverableObjects, onObjectClic
         if (event.button === 0 && hoveredObject) {
             console.log('Clicked object:', hoveredObject.name || hoveredObject);
             if (onObjectClick) {
-                onObjectClick(hoveredObject.position);
+                onObjectClick(hoveredObject.position, hoveredObject);
+
             }
         }
     }

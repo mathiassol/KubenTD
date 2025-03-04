@@ -26,3 +26,21 @@ html, body {
     background-color: green;
     border-radius: 10px;
 }
+.command-prompt {
+    position: fixed;
+    bottom: -100px; /* Hidden initially */
+    left: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 10px;
+    transition: bottom 0.3s ease-in-out;
+}
+.command-input {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #fff;
+    font-size: 16px;
+}

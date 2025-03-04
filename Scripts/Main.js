@@ -105,29 +105,46 @@ function onEnemyReachedEnd(enemy) {
     delete enemies[enemy.id];
 }
 
+let selectedUUID = null;
 let selectedObject = null;
 
 function handleObjectClick(position, object) {
+    if (!object) {
+        console.warn("Clicked object is undefined.");
+        return;
+    }
+
     console.log(`Clicked object at: x=${position.x}, y=${position.y}, z=${position.z}`);
 
-    selectedObject = object; // Store the clicked object
+    selectedUUID = object.uuid;
+    selectedObject = object;
+    console.log(`Selected UUID: ${selectedUUID}`);
 
-    // Set initial camera target
+    // Store the position of the object when clicked
     controls.target.set(position.x, position.y, position.z);
     controls.update();
 }
-function updateCamera(sObj) {
-    if (sObj) {
-        const targetPosition = sObj.position.clone();
-        console.log(targetPosition);
-        targetPosition.y += 5; // Adjust height for better tracking
 
-        // Smoothly interpolate camera position
-        camera.position.lerp(targetPosition.clone().add(new THREE.Vector3(0, 10, 20)), 0.1);
-        controls.target.lerp(targetPosition, 0.1);
-        controls.update();
+function updateCamera(scene) {
+    if (selectedUUID) {
+        const object = scene.getObjectByProperty('uuid', selectedUUID);
+
+        if (object) {
+            console.log(`Updating camera for object with UUID: ${selectedUUID}`);
+
+            // Keep the target position at the object, but allow orbiting around it
+            const targetPosition = object.position.clone();
+            targetPosition.y += 5;
+
+            // Smoothly interpolate towards the target, but avoid locking in place
+            controls.target.lerp(targetPosition, 0.1);
+            controls.update();
+        } else {
+            console.warn("No object found with the stored UUID.");
+        }
     }
 }
+
 
 
 const hoverableObjects = [boxMesh2, boxMesh];
@@ -144,7 +161,7 @@ function draw() {
         let enemy = enemies[id];
         enemy.update(deltaTime, onEnemyReachedEnd);
     }
-    updateCamera(selectedObject)
+    updateCamera(selectedObject);
 
     renderer.render(scene, camera);
     renderer.setAnimationLoop(draw);
@@ -161,3 +178,60 @@ function setSize() {
 window.addEventListener('resize', setSize);
 
 draw();
+
+// commands
+document.addEventListener("keydown", function(event) {
+    const prompt = document.getElementById("commandPrompt");
+    const input = document.getElementById("commandInput");
+
+    if (event.key === "Tab") {
+        event.preventDefault();
+        if (prompt.style.bottom === "0px") {
+            prompt.style.bottom = "-100px";
+            input.value = "";
+        } else {
+            prompt.style.bottom = "0";
+            input.focus();
+        }
+    }
+    if (event.key === "Escape") {
+        prompt.style.bottom = "-100px";
+        input.value = "";
+    }
+});
+
+document.getElementById("commandInput").addEventListener("keydown", function(event) {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        let command = this.value.trim();
+        executeCommand(command);
+        this.value = "";
+    }
+});
+
+function executeCommand(command) {
+    switch (true) {
+        case command === "help":
+            alert("Available commands: help, hello");
+            break;
+        case command === "hello":
+            alert("Hello there!");
+            break;
+        case command === "reload":
+            window.location.reload(true);
+            break;
+        case command.startsWith("create"):
+            command = command.slice(7);
+            switch (true) {
+                case command.startsWith("axis"):
+                    command = command.slice(5);
+                    const axesHelper = new THREE.AxesHelper(command);
+                    scene.add(axesHelper);
+                    break
+            }
+            break
+
+        default:
+            console.log("error: 1, unknown command");
+    }
+}
