@@ -62,6 +62,9 @@ scene.add(boxMesh2);
 window.addEventListener('keydown', function(event) {
     if (event.key === 'Shift' && event.location === 1) {
         controls.target.set(0, 3, 0)
+
+        selectedUUID = null;
+        selectedObject = null;
         controls.update();
     }
 });
@@ -123,7 +126,6 @@ function spawnEnemy(path, delay, speed, health) {
         const enemy = new Enemy(scene, path, speed, health);
         enemies[enemy.id] = enemy;
 
-        // Add enemy to hoverable objects for raycasting
         hoverableObjects.push(enemy.enemy);
     }, delay);
 }
