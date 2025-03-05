@@ -60,7 +60,7 @@ boxMesh2.position.z = -10;
 scene.add(boxMesh2);
 
 window.addEventListener('keydown', function(event) {
-    if (event.key === 'leftshift' || event.key === 'K') {
+    if (event.key === 'Shift' && event.location === 1) {
         controls.target.set(0, 3, 0)
         controls.update();
     }
@@ -79,6 +79,8 @@ const units = [];
 function createUnit(x, y, z, damage, range, attackSpeed) {
     const unit = new Unit(scene, x, y, z, damage, range, attackSpeed);
     units.push(unit);
+
+    hoverableObjects.push(unit.mesh);
 }
 
 // Draw
@@ -120,6 +122,9 @@ function spawnEnemy(path, delay, speed, health) {
     setTimeout(() => {
         const enemy = new Enemy(scene, path, speed, health);
         enemies[enemy.id] = enemy;
+
+        // Add enemy to hoverable objects for raycasting
+        hoverableObjects.push(enemy.enemy);
     }, delay);
 }
 
