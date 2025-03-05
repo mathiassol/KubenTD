@@ -52,19 +52,17 @@ function initRaycasting(scene, camera, floorMesh, hoverableObjects, onObjectClic
         outlineMesh = createOutline(target);
         scene.add(outlineMesh);
 
-        updateOutline(); // Initial positioning
+        updateOutline();
     }
-
     function updateOutline() {
         if (outlineMesh && hoveredObject) {
             hoveredObject.updateMatrixWorld(true);
             outlineMesh.matrix.copy(hoveredObject.matrixWorld);
             outlineMesh.matrix.decompose(outlineMesh.position, outlineMesh.quaternion, outlineMesh.scale);
 
-            requestAnimationFrame(updateOutline); // Keep updating while hovering
+            requestAnimationFrame(updateOutline);
         }
     }
-
     function removeOutline() {
         if (outlineMesh) {
             scene.remove(outlineMesh);

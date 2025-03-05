@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls';
-import { createOutline } from './createOutline.js';
 import { initRaycasting } from './raycasterUtils.js';
 import { buildWorld } from "./worldElements.js";
 import Enemy from './enemy.js';
+import Unit from './unit.js';
 // Renderer
 const canvas = document.querySelector('#three-canvas');
 const renderer = new THREE.WebGLRenderer({
@@ -60,8 +60,8 @@ boxMesh2.position.z = -10;
 scene.add(boxMesh2);
 
 window.addEventListener('keydown', function(event) {
-    if (event.key === 'k' || event.key === 'K') {
-        controls.target.set(15, 3, 15)
+    if (event.key === 'leftshift' || event.key === 'K') {
+        controls.target.set(0, 3, 0)
         controls.update();
     }
 });
@@ -74,6 +74,12 @@ function updateHealthBar() {
     if (playerHealth <= 0) {
     }
 }
+const units = [];
+
+function createUnit(x, y, z, damage, range, attackSpeed) {
+    const unit = new Unit(scene, x, y, z, damage, range, attackSpeed);
+    units.push(unit);
+}
 
 // Draw
 const clock = new THREE.Clock();
@@ -85,20 +91,73 @@ const path = [
     new THREE.Vector3(60, 0, -20),
     new THREE.Vector3(80, 0, 0)
 ];
-const enemies = {};
+let waveCount = 0;
+let enemies = {};
+let enemyInterval = null;
 
-const enemy1 = new Enemy(scene, path, 10, 100);
-enemies[enemy1.id] = enemy1;
+// Wave index
+const waveConfig = [
+    [
+        { speed: 5, health: 100 },
+        { speed: 4, health: 100 },
+        { speed: 3, health: 100 },
+    ],
+    [
+        { speed: 3, health: 150 },
+        { speed: 4, health: 180 },
+        { speed: 5, health: 200 },
+        { speed: 3, health: 100 },
+    ],
+    [
+        { speed: 6, health: 250 },
+        { speed: 4, health: 230 },
+        { speed: 5, health: 210 },
+        { speed: 7, health: 270 },
+    ],
+];
 
-const enemy2 = new Enemy(scene, path, 20, 40);
-enemies[enemy2.id] = enemy2;
+function spawnEnemy(path, delay, speed, health) {
+    setTimeout(() => {
+        const enemy = new Enemy(scene, path, speed, health);
+        enemies[enemy.id] = enemy;
+    }, delay);
+}
+
+function spawnWave() {
+    const waveData = waveConfig[waveCount];
+
+    const spawnDelay = 1000;
+
+    if (!waveData) {
+        console.log("No more waves to spawn!");
+        return;
+    }
+
+    for (let i = 0; i < waveData.length; i++) {
+        const enemyData = waveData[i];
+        spawnEnemy(path, i * spawnDelay, enemyData.speed, enemyData.health);
+    }
+    waveCount++;
+}
+
+function handleKeyPress(event) {
+    if (event.key === "I" || event.key === "i") {
+        if (enemyInterval) {
+            clearInterval(enemyInterval);
+        }
+
+        spawnWave();
+    }
+}
+
+window.addEventListener('keydown', handleKeyPress);
+
 function onEnemyReachedEnd(enemy) {
     playerHealth -= enemy.health;
 
     if (playerHealth < 0) {
         playerHealth = 0;
     }
-
     updateHealthBar();
 
     scene.remove(enemy.enemy);
@@ -120,7 +179,6 @@ function handleObjectClick(position, object) {
     selectedObject = object;
     console.log(`Selected UUID: ${selectedUUID}`);
 
-    // Store the position of the object when clicked
     controls.target.set(position.x, position.y, position.z);
     controls.update();
 }
@@ -132,11 +190,9 @@ function updateCamera(scene) {
         if (object) {
             console.log(`Updating camera for object with UUID: ${selectedUUID}`);
 
-            // Keep the target position at the object, but allow orbiting around it
             const targetPosition = object.position.clone();
             targetPosition.y += 5;
 
-            // Smoothly interpolate towards the target, but avoid locking in place
             controls.target.lerp(targetPosition, 0.1);
             controls.update();
         } else {
@@ -145,12 +201,18 @@ function updateCamera(scene) {
     }
 }
 
-
-
 const hoverableObjects = [boxMesh2, boxMesh];
 for (let id in enemies) {
     hoverableObjects.push(enemies[id].enemy);
 }
+
+document.addEventListener("keydown", function(event) {
+    if (event.key === "u" || event.key === "U") {
+        Unit.startPlacementMode(scene, camera, (x, y, z) => {
+            createUnit(x, y, z, 50, 200, 1);
+        });
+    }
+});
 
 initRaycasting(scene, camera, floorMesh, hoverableObjects, handleObjectClick);
 
@@ -162,6 +224,9 @@ function draw() {
         enemy.update(deltaTime, onEnemyReachedEnd);
     }
     updateCamera(selectedObject);
+    for (let unit of units) {
+        unit.update(enemies, deltaTime);
+    }
 
     renderer.render(scene, camera);
     renderer.setAnimationLoop(draw);

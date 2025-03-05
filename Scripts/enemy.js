@@ -1,7 +1,13 @@
 import * as THREE from 'three';
 
 let enemyCounter = 0;
+let lastTime = performance.now();
+let isGamePaused = false;
 
+document.addEventListener('visibilitychange', () => {
+    isGamePaused = document.hidden;
+    lastTime = performance.now();
+});
 export default class Enemy {
     constructor(scene, path, speed, enemyHealth) {
         this.scene = scene;
@@ -19,7 +25,7 @@ export default class Enemy {
         this.scene.add(this.enemy);
     }
     update(deltaTime, onEnemyReachedEnd) {
-        if (!this.isMoving) return;
+        if (!this.isMoving || isGamePaused) return;
 
         const target = this.path[this.currentWaypointIndex];
         const direction = new THREE.Vector3().subVectors(target, this.enemy.position);
@@ -27,7 +33,7 @@ export default class Enemy {
 
         if (distance > 0.5) {
             const moveDistance = this.speed * deltaTime;
-            direction.normalize().multiplyScalar(moveDistance);
+            direction.normalize().multiplyScalar(Math.min(moveDistance, distance));
             this.enemy.position.add(direction);
         } else {
             this.currentWaypointIndex = (this.currentWaypointIndex + 1) % this.path.length;
