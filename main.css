@@ -44,3 +44,31 @@ html, body {
     color: #fff;
     font-size: 16px;
 }
+
+#hot-bar {
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+}
+
+.hot-bar-slot {
+    width: 50px;
+    height: 50px;
+    background-color: #ccc;
+    border: 2px solid #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.hot-bar-slot[data-unit-type="attacker"] {
+    background-color: green;
+}
+
+.hot-bar-slot[data-unit-type="defender"] {
+    background-color: blue;
+}

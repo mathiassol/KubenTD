@@ -79,10 +79,9 @@ function updateHealthBar() {
 }
 const units = [];
 
-function createUnit(x, y, z, damage, range, attackSpeed) {
-    const unit = new Unit(scene, x, y, z, damage, range, attackSpeed);
+function createUnit(x, y, z, type) {
+    const unit = new Unit(scene, x, y, z, type);
     units.push(unit);
-
     hoverableObjects.push(unit.mesh);
 }
 
@@ -103,21 +102,19 @@ let enemyInterval = null;
 // Wave index
 const waveConfig = [
     [
-        { speed: 5, health: 100 },
-        { speed: 4, health: 100 },
-        { speed: 3, health: 100 },
+        { speed: 5, health: 50 },
+        { speed: 4, health: 50 },
+        { speed: 3, health: 50 },
     ],
     [
-        { speed: 3, health: 150 },
-        { speed: 4, health: 180 },
-        { speed: 5, health: 200 },
-        { speed: 3, health: 100 },
+        { speed: 5, health: 50 },
+        { speed: 4, health: 50 },
+        { speed: 3, health: 50 },
     ],
     [
-        { speed: 6, health: 250 },
-        { speed: 4, health: 230 },
-        { speed: 5, health: 210 },
-        { speed: 7, health: 270 },
+        { speed: 5, health: 50 },
+        { speed: 4, health: 50 },
+        { speed: 3, health: 50 },
     ],
 ];
 
@@ -195,7 +192,6 @@ function updateCamera(scene) {
         const object = scene.getObjectByProperty('uuid', selectedUUID);
 
         if (object) {
-            console.log(`Updating camera for object with UUID: ${selectedUUID}`);
 
             const targetPosition = object.position.clone();
             targetPosition.y += 5;
@@ -215,11 +211,17 @@ for (let id in enemies) {
 
 document.addEventListener("keydown", function(event) {
     if (event.key === "u" || event.key === "U") {
-        Unit.startPlacementMode(scene, camera, (x, y, z) => {
-            createUnit(x, y, z, 50, 200, 1);
+        Unit.startPlacementMode(scene, camera, 'attacker', (x, y, z, type) => {
+            createUnit(x, y, z, type);
         });
     }
 });
+
+function setUnitLevel(unitIndex, newLevel) {
+    if (units[unitIndex]) {
+        units[unitIndex].setLevel(newLevel);
+    }
+}
 
 initRaycasting(scene, camera, floorMesh, hoverableObjects, handleObjectClick);
 
@@ -238,6 +240,8 @@ function draw() {
     renderer.render(scene, camera);
     renderer.setAnimationLoop(draw);
 }
+
+export { hoverableObjects };
 
 function setSize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -280,11 +284,10 @@ document.getElementById("commandInput").addEventListener("keydown", function(eve
         this.value = "";
     }
 });
-
 function executeCommand(command) {
     switch (true) {
         case command === "help":
-            alert("Available commands: help, hello");
+            alert("Available commands: help, hello, reload, setDamage <unitIndex> <newDamage>, setLevel <unitIndex> <newLevel>");
             break;
         case command === "hello":
             alert("Hello there!");
@@ -292,18 +295,36 @@ function executeCommand(command) {
         case command === "reload":
             window.location.reload(true);
             break;
-        case command.startsWith("create"):
-            command = command.slice(7);
-            switch (true) {
-                case command.startsWith("axis"):
-                    command = command.slice(5);
-                    const axesHelper = new THREE.AxesHelper(command);
-                    scene.add(axesHelper);
-                    break
+        case command.startsWith("setDamage"):
+            const damageArgs = command.split(" ");
+            if (damageArgs.length === 3) {
+                const unitIndex = parseInt(damageArgs[1], 10);
+                const newDamage = parseInt(damageArgs[2], 10);
+                if (!isNaN(unitIndex) && !isNaN(newDamage) && units[unitIndex]) {
+                    units[unitIndex].setDamage(newDamage);
+                    console.log(`Unit ${unitIndex} damage set to ${newDamage}`);
+                } else {
+                    console.log("Invalid command arguments");
+                }
+            } else {
+                console.log("Invalid command format");
             }
-            break
-
+            break;
+        case command.startsWith("setLevel"):
+            const levelArgs = command.split(" ");
+            if (levelArgs.length === 3) {
+                const unitIndex = parseInt(levelArgs[1], 10);
+                const newLevel = parseInt(levelArgs[2], 10);
+                if (!isNaN(unitIndex) && !isNaN(newLevel) && units[unitIndex]) {
+                    setUnitLevel(unitIndex, newLevel);
+                    console.log(`Unit ${unitIndex} level set to ${newLevel}`);
+                } else {
+                    console.log("Invalid command arguments");
+                }
+            } else {
+                console.log("Invalid command format");
+            }
+            break;
         default:
-            console.log("error: 1, unknown command");
     }
 }

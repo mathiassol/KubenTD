@@ -31,8 +31,11 @@ function initRaycasting(scene, camera, floorMesh, hoverableObjects, onObjectClic
             removeOutline();
             hoveredObject = null;
         }
+        if (hoveredObject && !scene.getObjectById(hoveredObject.id)) {
+            removeOutline();
+            hoveredObject = null;
+        }
     }
-
     function onMouseClick(event) {
         if (event.button === 0 && hoveredObject) {
             console.log('Clicked object:', hoveredObject.name || hoveredObject);
@@ -56,6 +59,12 @@ function initRaycasting(scene, camera, floorMesh, hoverableObjects, onObjectClic
 
     function updateOutline() {
         if (outlineMesh && hoveredObject) {
+            if (!scene.getObjectById(hoveredObject.id)) {
+                removeOutline();
+                hoveredObject = null;
+                return;
+            }
+
             hoveredObject.updateMatrixWorld(true);
             outlineMesh.matrix.copy(hoveredObject.matrixWorld);
             outlineMesh.matrix.decompose(outlineMesh.position, outlineMesh.quaternion, outlineMesh.scale);
@@ -73,6 +82,5 @@ function initRaycasting(scene, camera, floorMesh, hoverableObjects, onObjectClic
         }
     }
 }
-
 
 export { initRaycasting };

@@ -1,11 +1,13 @@
 import * as THREE from 'three';
+import { hoverableObjects } from './main.js';
+import { unitConfig } from './unitConfig.js';
 
 export default class Unit {
-    constructor(scene, x, y, z, damage, range, attackSpeed) {
+    constructor(scene, x, y, z, type, level = 1) {
         this.scene = scene;
-        this.damage = damage;
-        this.range = range;
-        this.attackSpeed = attackSpeed;
+        this.type = type;
+        this.level = level;
+        this.setStats();
         this.lastAttackTime = 0;
 
         this.mesh = new THREE.Mesh(
@@ -16,10 +18,26 @@ export default class Unit {
         this.scene.add(this.mesh);
     }
 
+    setStats() {
+        const stats = unitConfig[this.type][this.level - 1];
+        this.damage = stats.damage;
+        this.range = stats.range;
+        this.attackSpeed = stats.attackSpeed;
+        console.log(`Stats set for level ${this.level}: Damage: ${this.damage}, Range: ${this.range}, Attack Speed: ${this.attackSpeed}`);
+    }
+
     findEnemiesInRange(enemies) {
         return Object.values(enemies).filter(enemy =>
             this.mesh.position.distanceTo(enemy.enemy.position) <= this.range
         );
+    }
+
+    setLevel(newLevel) {
+        if (newLevel >= 1 && newLevel <= 6) {
+            this.level = newLevel;
+            this.setStats();
+            console.log(`Unit level set to ${newLevel}. Damage: ${this.damage}, Range: ${this.range}, Attack Speed: ${this.attackSpeed}`);
+        }
     }
 
     update(enemies, deltaTime) {
@@ -27,19 +45,20 @@ export default class Unit {
         if (this.lastAttackTime >= this.attackSpeed) {
             let targets = this.findEnemiesInRange(enemies);
             if (targets.length > 0) {
-
                 let target = targets[0];
+                console.log(`Attacking enemy with health: ${target.health} using damage: ${this.damage} at level: ${this.level}`);
                 target.health -= this.damage;
                 if (target.health <= 0) {
                     this.scene.remove(target.enemy);
                     delete enemies[target.id];
+                    console.log(hoverableObjects);
                 }
                 this.lastAttackTime = 0;
             }
         }
     }
 
-    static startPlacementMode(scene, camera, onPlace) {
+    static startPlacementMode(scene, camera, type, onPlace) {
         let previewMesh = new THREE.Mesh(
             new THREE.BoxGeometry(5, 5, 5),
             new THREE.MeshLambertMaterial({ color: 'green', transparent: true, opacity: 0.5 })
@@ -65,10 +84,12 @@ export default class Unit {
             scene.remove(previewMesh);
             window.removeEventListener('mousemove', onMouseMove);
             window.removeEventListener('click', onMouseClick);
-            onPlace(previewMesh.position.x, 0, previewMesh.position.z);
+            onPlace(previewMesh.position.x, 0, previewMesh.position.z, type);
         }
 
         window.addEventListener('mousemove', onMouseMove);
         window.addEventListener('click', onMouseClick);
     }
 }
+
+export { Unit };
