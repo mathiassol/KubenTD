@@ -4,7 +4,23 @@ import { initRaycasting } from './raycasterUtils.js';
 import { buildWorld } from "./worldElements.js";
 import Enemy from './enemy.js';
 import Unit from './unit.js';
+import { unitConfig } from './unitConfig.js';
 // Renderer
+
+let isListenerAdded = false;
+
+
+console.log("Main.js script loaded");
+
+function init() {
+    // Only add the listener if it's not already added
+    if (!isListenerAdded) {
+        window.addEventListener("keydown", handleKeyPress);
+        isListenerAdded = true;
+    }
+}
+init()
+
 const canvas = document.querySelector('#three-canvas');
 const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -59,15 +75,7 @@ const boxMesh2 = new THREE.Mesh(geometry, material);
 boxMesh2.position.z = -10;
 scene.add(boxMesh2);
 
-window.addEventListener('keydown', function(event) {
-    if (event.key === 'Shift' && event.location === 1) {
-        controls.target.set(0, 3, 0)
 
-        selectedUUID = null;
-        selectedObject = null;
-        controls.update();
-    }
-});
 
 let playerHealth = 100;
 const healthBar = document.getElementById('health-bar');
@@ -79,11 +87,77 @@ function updateHealthBar() {
 }
 const units = [];
 
-function createUnit(x, y, z, type) {
-    const unit = new Unit(scene, x, y, z, type);
-    units.push(unit);
-    hoverableObjects.push(unit.mesh);
+function removeUnit(unit) {
+    const index = units.indexOf(unit);
+    if (index > -1) {
+        units.splice(index, 1);
+        const hoverIndex = hoverableObjects.indexOf(unit.mesh);
+        if (hoverIndex > -1) {
+            hoverableObjects.splice(hoverIndex, 1);
+        }
+        scene.remove(unit.mesh);
+
+        // Calculate refund
+        const unitCost = unitConfig[unit.type].price;
+        let totalSpent = unitCost;
+        for (const path in unit.pathLevels) {
+            const level = unit.pathLevels[path];
+            for (let i = 0; i < level; i++) {
+                totalSpent += unitConfig[unit.type][path][i].upgradePrice;
+            }
+        }
+        const refund = totalSpent * 0.5;
+        setCash(cash + refund);
+    }
 }
+
+function createUnit(x, y, z, type) {
+    const unitCost = unitConfig[type].price;
+    if (cash >= unitCost) {
+        const unit = new Unit(scene, x, y, z, type);
+        units.push(unit);
+        cash -= unitCost;
+        updateCashDisplay();
+        if (!hoverableObjects.includes(unit.mesh)) {
+            hoverableObjects.push(unit.mesh);
+        }
+    } else {
+        showNotification("Not enough cash");
+        shakeCanvas();
+    }
+}
+function shakeCanvas() {
+    const canvas = document.querySelector('#three-canvas');
+    canvas.classList.add('shake');
+    setTimeout(() => {
+        canvas.classList.remove('shake');
+    }, 500);
+}
+function showNotification(message) {
+    const notificationContainer = document.getElementById('notification-container');
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.innerText = message;
+    notificationContainer.appendChild(notification);
+
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+let cash = 300;
+
+export function updateCashDisplay() {
+    const cashBalanceElement = document.getElementById('cash-balance');
+    cashBalanceElement.innerText = `Cash: ${cash}`;
+}
+
+export function setCash(newCash) {
+    cash = newCash;
+    updateCashDisplay();
+}
+
+export { cash };
+
 
 // Draw
 const clock = new THREE.Clock();
@@ -102,19 +176,13 @@ let enemyInterval = null;
 // Wave index
 const waveConfig = [
     [
-        { speed: 5, health: 50 },
-        { speed: 4, health: 50 },
-        { speed: 3, health: 50 },
+        { speed: 5, health: 1000 },
     ],
     [
-        { speed: 5, health: 50 },
-        { speed: 4, health: 50 },
-        { speed: 3, health: 50 },
+        { speed: 5, health: 1000 },
     ],
     [
-        { speed: 5, health: 50 },
-        { speed: 4, health: 50 },
-        { speed: 3, health: 50 },
+        { speed: 5, health: 1000 },
     ],
 ];
 
@@ -152,9 +220,36 @@ function handleKeyPress(event) {
 
         spawnWave();
     }
-}
+    if (event.key === "u" || event.key === "U") {
+        Unit.startPlacementMode(scene, camera, 'attacker', (x, y, z, type) => {
+            createUnit(x, y, z, type);
+        });
+    }
+    if (event.key === 'Shift' && event.location === 1) {
+        controls.target.set(0, 3, 0)
 
-window.addEventListener('keydown', handleKeyPress);
+        selectedUUID = null;
+        selectedObject = null;
+        controls.update();
+    }
+    const prompt = document.getElementById("commandPrompt");
+    const input = document.getElementById("commandInput");
+
+    if (event.key === "Tab") {
+        event.preventDefault();
+        if (prompt.style.bottom === "0px") {
+            prompt.style.bottom = "-100px";
+            input.value = "";
+        } else {
+            prompt.style.bottom = "0";
+            input.focus();
+        }
+    }
+    if (event.key === "Escape") {
+        prompt.style.bottom = "-100px";
+        input.value = "";
+    }
+}
 
 function onEnemyReachedEnd(enemy) {
     playerHealth -= enemy.health;
@@ -165,7 +260,64 @@ function onEnemyReachedEnd(enemy) {
     updateHealthBar();
 
     scene.remove(enemy.enemy);
-    delete enemies[enemy.id];
+    delete enemies[enemy.id];c
+}
+function showUnitMenu(unit) {
+    const sideMenu = document.getElementById('side-menu');
+    sideMenu.style.display = 'block';
+
+    sideMenu.innerHTML = `
+        <button id="close-button" class="close-button">&times;</button>
+        <h3>${unit.type}</h3>
+        ${['path1', 'path2', 'path3'].map(path => `
+            <div class="path-box">
+                <div class="path-level">Level ${unit.pathLevels[path]}</div>
+                <div class="path-upgrade">
+                    ${unitConfig[unit.type][path][unit.pathLevels[path]] ? `
+                        <div>Next Upgrade:</div>
+                        <div>Damage: ${unitConfig[unit.type][path][unit.pathLevels[path]].damage.toFixed(1)}</div>
+                        <div>Range: ${unitConfig[unit.type][path][unit.pathLevels[path]].range.toFixed(1)}</div>
+                        <div>Attack Speed: ${unitConfig[unit.type][path][unit.pathLevels[path]].attackSpeed.toFixed(1)}</div>
+                        <button class="path-button" data-path="${path}" ${!unit.canUpgradePath(path) ? 'disabled' : ''}>Upgrade Path ${path.slice(-1)}</button>
+                    ` : '<div>Max Level Reached</div>'}
+                </div>
+            </div>
+        `).join('')}
+        <div class="current-stats">
+            <h4>Current Stats:</h4>
+            <div>Damage: ${unit.damage.toFixed(1)}</div>
+            <div>Range: ${unit.range.toFixed(1)}</div>
+            <div>Attack Speed: ${unit.attackSpeed.toFixed(1)}</div>
+        </div>
+        <button id="sell-button" class="sell-button">Sell Unit</button>
+    `;
+
+    document.getElementById('close-button').addEventListener('click', () => {
+        sideMenu.style.display = 'none';
+    });
+
+    document.querySelectorAll('.path-button').forEach(button => {
+        button.addEventListener('click', (event) => {
+            const newPath = event.target.getAttribute('data-path');
+            unit.upgradePath(newPath);
+            showUnitMenu(unit);
+        });
+    });
+
+    document.getElementById('sell-button').addEventListener('click', () => {
+        const modal = document.getElementById('confirmation-dialog');
+        modal.style.display = 'block';
+
+        document.getElementById('confirm-button').onclick = () => {
+            removeUnit(unit);
+            sideMenu.style.display = 'none';
+            modal.style.display = 'none';
+        };
+
+        document.getElementById('cancel-button').onclick = () => {
+            modal.style.display = 'none';
+        };
+    });
 }
 
 let selectedUUID = null;
@@ -185,6 +337,12 @@ function handleObjectClick(position, object) {
 
     controls.target.set(position.x, position.y, position.z);
     controls.update();
+
+    // Check if the clicked object is a unit
+    const clickedUnit = units.find(unit => unit.mesh.uuid === object.uuid);
+    if (clickedUnit) {
+        showUnitMenu(clickedUnit);
+    }
 }
 
 function updateCamera(scene) {
@@ -209,14 +367,6 @@ for (let id in enemies) {
     hoverableObjects.push(enemies[id].enemy);
 }
 
-document.addEventListener("keydown", function(event) {
-    if (event.key === "u" || event.key === "U") {
-        Unit.startPlacementMode(scene, camera, 'attacker', (x, y, z, type) => {
-            createUnit(x, y, z, type);
-        });
-    }
-});
-
 function setUnitLevel(unitIndex, newLevel) {
     if (units[unitIndex]) {
         units[unitIndex].setLevel(newLevel);
@@ -225,21 +375,29 @@ function setUnitLevel(unitIndex, newLevel) {
 
 initRaycasting(scene, camera, floorMesh, hoverableObjects, handleObjectClick);
 
+const speedFactor = 1;
+let frameCount = 0;
 function draw() {
-    const deltaTime = clock.getDelta();
+    frameCount++;
+
+    const deltaTime = clock.getDelta() * speedFactor;
 
     for (let id in enemies) {
-        let enemy = enemies[id];
-        enemy.update(deltaTime, onEnemyReachedEnd);
+        enemies[id].update(deltaTime, onEnemyReachedEnd);
     }
+
     updateCamera(selectedObject);
+
     for (let unit of units) {
         unit.update(enemies, deltaTime);
     }
+    updateCashDisplay()
 
     renderer.render(scene, camera);
-    renderer.setAnimationLoop(draw);
 }
+
+renderer.setAnimationLoop(draw);
+
 
 export { hoverableObjects };
 
@@ -252,29 +410,6 @@ function setSize() {
 
 // Event
 window.addEventListener('resize', setSize);
-
-draw();
-
-// commands
-document.addEventListener("keydown", function(event) {
-    const prompt = document.getElementById("commandPrompt");
-    const input = document.getElementById("commandInput");
-
-    if (event.key === "Tab") {
-        event.preventDefault();
-        if (prompt.style.bottom === "0px") {
-            prompt.style.bottom = "-100px";
-            input.value = "";
-        } else {
-            prompt.style.bottom = "0";
-            input.focus();
-        }
-    }
-    if (event.key === "Escape") {
-        prompt.style.bottom = "-100px";
-        input.value = "";
-    }
-});
 
 document.getElementById("commandInput").addEventListener("keydown", function(event) {
     if (event.key === "Enter") {
@@ -295,7 +430,7 @@ function executeCommand(command) {
         case command === "reload":
             window.location.reload(true);
             break;
-        case command.startsWith("setDamage"):
+        case command.startsWith("setdamage"):
             const damageArgs = command.split(" ");
             if (damageArgs.length === 3) {
                 const unitIndex = parseInt(damageArgs[1], 10);
@@ -318,6 +453,20 @@ function executeCommand(command) {
                 if (!isNaN(unitIndex) && !isNaN(newLevel) && units[unitIndex]) {
                     setUnitLevel(unitIndex, newLevel);
                     console.log(`Unit ${unitIndex} level set to ${newLevel}`);
+                } else {
+                    console.log("Invalid command arguments");
+                }
+            } else {
+                console.log("Invalid command format");
+            }
+            break;
+        case command.startsWith("setcash"):
+            const cashArgs = command.split(" ");
+            if (cashArgs.length === 2) {
+                const newCash = parseInt(cashArgs[1], 10);
+                if (!isNaN(newCash)) {
+                    setCash(newCash);
+                    console.log(`Cash set to ${newCash}`);
                 } else {
                     console.log("Invalid command arguments");
                 }

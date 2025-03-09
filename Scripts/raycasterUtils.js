@@ -1,5 +1,18 @@
 import * as THREE from 'three';
-import { createOutline } from './createOutline.js';
+
+function createOutline(mesh) {
+    const edges = new THREE.EdgesGeometry(mesh.geometry);
+    const outlineMaterial = new THREE.LineBasicMaterial({
+        color: 0xffffff,
+        linewidth: 3
+    });
+
+    const outline = new THREE.LineSegments(edges, outlineMaterial);
+    outline.renderOrder = 1;
+    outline.scale.multiplyScalar(1.02);
+
+    return outline;
+}
 
 function initRaycasting(scene, camera, floorMesh, hoverableObjects, onObjectClick) {
     let hoveredObject = null;
@@ -36,6 +49,7 @@ function initRaycasting(scene, camera, floorMesh, hoverableObjects, onObjectClic
             hoveredObject = null;
         }
     }
+
     function onMouseClick(event) {
         if (event.button === 0 && hoveredObject) {
             console.log('Clicked object:', hoveredObject.name || hoveredObject);
