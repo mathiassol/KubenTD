@@ -170,8 +170,6 @@
 }
 
 .menu-open:checked ~ .menu-item:nth-child(5) {
-
-
     transition-duration: 480ms;
     -webkit-transition-duration: 480ms;
     -webkit-transform: translate3d(0.08361px, 104.99997px, 0);
