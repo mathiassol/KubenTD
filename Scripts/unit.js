@@ -88,25 +88,34 @@ export default class Unit {
     update(enemies, deltaTime) {
         this.lastAttackTime += deltaTime;
 
-        if (this.lastAttackTime >= this.attackSpeed) {
-            let targets = this.findEnemiesInRange(enemies);
-            if (targets.length > 0) {
-                targets.sort((a, b) => a.distanceToEnd - b.distanceToEnd);
+        let targets = this.findEnemiesInRange(enemies);
+        if (targets.length > 0) {
+            targets.sort((a, b) => a.distanceToEnd - b.distanceToEnd);
 
-                if (this.type !== 'hybrid') {
-                    targets = targets.filter(target => this.target === target.type);
+            if (this.type !== 'hybrid') {
+                targets = targets.filter(target => this.target === target.type);
+            }
+
+            let newTarget = targets[0];
+
+            if (newTarget && newTarget.health > 0) {
+                if (!this.currentTarget || newTarget.distanceToEnd < this.currentTarget.distanceToEnd) {
+                    this.currentTarget = newTarget;
                 }
 
-                let target = targets[0];
+                // Rotate to look at the current target
+                const direction = new THREE.Vector3().subVectors(this.currentTarget.enemy.position, this.mesh.position).normalize();
+                const angle = Math.atan2(direction.x, direction.z);
+                this.mesh.rotation.y = angle;
 
-                if (target && target.health > 0) {
-                    console.log(`${target.health} | at level: ${this.pathLevels}`);
-                    target.health -= this.damage;
-                    if (target.health <= 0) {
-                        this.scene.remove(target.enemy);
-                        delete enemies[target.id];
+                if (this.lastAttackTime >= this.attackSpeed) {
+                    this.currentTarget.health -= this.damage;
+                    if (this.currentTarget.health <= 0) {
+                        this.scene.remove(this.currentTarget.enemy);
+                        delete enemies[this.currentTarget.id];
+                        this.currentTarget = null;
                     }
-                    this.lastAttackTime = 0; // Reset timer
+                    this.lastAttackTime = 0;
                 }
             }
         }

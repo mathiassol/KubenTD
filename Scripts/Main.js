@@ -174,13 +174,13 @@ let enemyInterval = null;
 // Wave index
 const waveConfig = [
     [
-        { speed: 5, health: 1000, type: 'ground' },
+        { speed: 5, health: 40, type: 'air' },
+    ],
+    [
+        { speed: 10, health: 40, type: 'air' },
     ],
     [
         { speed: 5, health: 1000, type: 'air' },
-    ],
-    [
-        { speed: 5, health: 1000 },
     ],
 ];
 
@@ -260,6 +260,17 @@ function onEnemyReachedEnd(enemy) {
     scene.remove(enemy.enemy);
     delete enemies[enemy.id];
 }
+function createRangeCircle(unit) {
+    const geometry = new THREE.CircleGeometry(unit.range, 64);
+    const material = new THREE.MeshBasicMaterial({ color: 0x3A96FF, side: THREE.DoubleSide, opacity: 0.5, transparent: true });
+    const circle = new THREE.Mesh(geometry, material);
+    circle.rotation.x = -Math.PI / 2;
+    circle.position.copy(unit.mesh.position);
+    circle.position.y = -4.85;
+    scene.add(circle);
+    return circle;
+}
+
 function showUnitMenu(unit) {
     const sideMenu = document.getElementById('side-menu');
     sideMenu.style.display = 'block';
@@ -290,8 +301,18 @@ function showUnitMenu(unit) {
         <button id="sell-button" class="sell-button">Sell Unit</button>
     `;
 
+    // Add range circle
+    if (unit.rangeCircle) {
+        scene.remove(unit.rangeCircle);
+    }
+    unit.rangeCircle = createRangeCircle(unit);
+
     document.getElementById('close-button').addEventListener('click', () => {
         sideMenu.style.display = 'none';
+        if (unit.rangeCircle) {
+            scene.remove(unit.rangeCircle);
+            unit.rangeCircle = null;
+        }
     });
 
     document.querySelectorAll('.path-button').forEach(button => {
@@ -310,6 +331,10 @@ function showUnitMenu(unit) {
             removeUnit(unit);
             sideMenu.style.display = 'none';
             modal.style.display = 'none';
+            if (unit.rangeCircle) {
+                scene.remove(unit.rangeCircle);
+                unit.rangeCircle = null;
+            }
         };
 
         document.getElementById('cancel-button').onclick = () => {

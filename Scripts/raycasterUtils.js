@@ -39,9 +39,18 @@ function initRaycasting(scene, camera, floorMesh, hoverableObjects, onObjectClic
                 removeOutline();
                 hoveredObject = newHoveredObject;
                 addOutline(hoveredObject);
+
+                if (hoveredObject.userData && hoveredObject.userData.enemy) {
+                    const enemy = hoveredObject.userData.enemy;
+                    enemy.showHealthBar();
+                    updateHealthBarPosition(enemy);
+                }
             }
         } else {
             removeOutline();
+            if (hoveredObject && hoveredObject.userData && hoveredObject.userData.enemy) {
+                hoveredObject.userData.enemy.hideHealthBar();
+            }
             hoveredObject = null;
         }
         if (hoveredObject && !scene.getObjectById(hoveredObject.id)) {
@@ -94,6 +103,18 @@ function initRaycasting(scene, camera, floorMesh, hoverableObjects, onObjectClic
             outlineMesh.material.dispose();
             outlineMesh = null;
         }
+    }
+
+    function updateHealthBarPosition(enemy) {
+        const vector = new THREE.Vector3();
+        enemy.enemy.getWorldPosition(vector);
+        vector.project(camera);
+
+        const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (vector.y * -0.5 + 0.5) * window.innerHeight;
+
+        enemy.healthBarElement.style.left = `${x - 50}px`;
+        enemy.healthBarElement.style.top = `${y - 10}px`;
     }
 }
 

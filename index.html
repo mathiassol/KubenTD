@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Three.js</title>
     <link rel="stylesheet" href="./main.css">
+    <link rel="stylesheet" href="burger.css">
     <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
     <script type="importmap">
         {
@@ -33,6 +34,20 @@
         <button id="cancel-button" class="modal-button">No</button>
     </div>
 </div>
+
+<nav class="menu">
+    <input type="checkbox" href="#" class="menu-open" name="menu-open" id="menu-open">
+    <label class="menu-open-button" for="menu-open">
+        <span class="lines line-1"></span>
+        <span class="lines line-2"></span>
+        <span class="lines line-3"></span>
+    </label>
+
+    <a href="#" class="menu-item blue"> <i class="fa fa-anchor"></i> </a>
+    <a href="#" class="menu-item green"> <i class="fa fa-coffee"></i> </a>
+    <a href="#" class="menu-item red"> <i class="fa fa-heart"></i> </a>
+    <a href="#" class="menu-item purple"> <i class="fa fa-microphone"></i> </a>
+</nav>
 
 <div class="command-prompt" id="commandPrompt">
     <input type="text" class="command-input" id="commandInput" placeholder="Enter command...">

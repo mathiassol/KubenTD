@@ -28,7 +28,15 @@ export default class Enemy {
         }
         this.scene.add(this.enemy);
         console.log('Enemy created:', this.type);
+
+        this.healthBarElement = document.getElementById('enemy-health-bar');
     }
+
+    updateHealthBar() {
+        const healthPercentage = (this.health / this.maxHealth) * 100;
+        this.healthBarElement.style.width = `${healthPercentage}px`;
+    }
+
     update(deltaTime, onEnemyReachedEnd) {
         if (!this.isMoving || isGamePaused) return;
 
@@ -53,5 +61,17 @@ export default class Enemy {
                 onEnemyReachedEnd(this);
             }
         }
+
+        // Update distance to end
+        this.updateDistanceToEnd();
+        this.updateHealthBar();
+    }
+
+    updateDistanceToEnd() {
+        const remainingPath = this.path.slice(this.currentWaypointIndex);
+        this.distanceToEnd = remainingPath.reduce((acc, waypoint, index) => {
+            const nextWaypoint = remainingPath[index + 1] || this.enemy.position;
+            return acc + waypoint.distanceTo(nextWaypoint);
+        }, 0);
     }
 }
