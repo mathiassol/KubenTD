@@ -2,6 +2,7 @@ const unitConfig = {
     attacker: {
         price: 100,
         baseStats: { damage: 10, range: 50, attackSpeed: 1.5 },
+        target: 'air',
         path1: [
             { damage: 10, range: 5, attackSpeed: -0.1, upgradePrice: 50 },
             { damage: 10, range: 5, attackSpeed: -0.1, upgradePrice: 50 },

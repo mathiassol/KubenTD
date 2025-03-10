@@ -9,11 +9,12 @@ export default class Unit {
         this.pathLevels = { path1: 0, path2: 0, path3: 0 };
         this.chosenPaths = new Set();
         this.baseStats = { ...unitConfig[this.type].baseStats };
+        this.target = unitConfig[this.type].target;
         this.setStats();
         this.lastAttackTime = 0;
 
         this.mesh = new THREE.Mesh(
-            new THREE.BoxGeometry(5, 5, 5),
+            new THREE.BoxGeometry(5, 10, 5),
             new THREE.MeshLambertMaterial({ color: 'green' })
         );
         this.mesh.position.set(x, y, z);
@@ -35,7 +36,7 @@ export default class Unit {
             });
         }
 
-        console.log(`Stats set: Damage: ${this.damage}, Range: ${this.range}, Attack Speed: ${this.attackSpeed}`);
+        console.log(`Stats set: Damage: ${this.damage}, Range: ${this.range}, Attack Speed: ${this.attackSpeed}, type: ${this.target}`);
     }
 
     canUpgradePath(path) {
@@ -90,9 +91,15 @@ export default class Unit {
         if (this.lastAttackTime >= this.attackSpeed) {
             let targets = this.findEnemiesInRange(enemies);
             if (targets.length > 0) {
+                targets.sort((a, b) => a.distanceToEnd - b.distanceToEnd);
+
+                if (this.type !== 'hybrid') {
+                    targets = targets.filter(target => this.target === target.type);
+                }
+
                 let target = targets[0];
 
-                if (target.health > 0) {
+                if (target && target.health > 0) {
                     console.log(`${target.health} | at level: ${this.pathLevels}`);
                     target.health -= this.damage;
                     if (target.health <= 0) {
@@ -108,7 +115,7 @@ export default class Unit {
     static startPlacementMode(scene, camera, type, onPlace) {
         console.log("startPlacementMode triggered");
         let previewMesh = new THREE.Mesh(
-            new THREE.BoxGeometry(5, 5, 5),
+            new THREE.BoxGeometry(5, 10, 5),
             new THREE.MeshLambertMaterial({ color: 'green', transparent: true, opacity: 0.5 })
         );
         scene.add(previewMesh);

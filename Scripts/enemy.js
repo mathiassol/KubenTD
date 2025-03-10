@@ -9,11 +9,12 @@ document.addEventListener('visibilitychange', () => {
     lastTime = performance.now();
 });
 export default class Enemy {
-    constructor(scene, path, speed, enemyHealth) {
+    constructor(scene, path, speed, enemyHealth, type) {
         this.scene = scene;
         this.path = path;
         this.speed = speed;
         this.health = enemyHealth;
+        this.type = type;
         this.currentWaypointIndex = 0;
         this.isMoving = true;
 
@@ -22,12 +23,21 @@ export default class Enemy {
         this.enemyMaterial = new THREE.MeshLambertMaterial({ color: 'red' });
         this.enemy = new THREE.Mesh(this.enemyGeometry, this.enemyMaterial);
 
+        if (this.type === 'air') {
+            this.enemy.position.set(0, 10, 0);
+        }
         this.scene.add(this.enemy);
+        console.log('Enemy created:', this.type);
     }
     update(deltaTime, onEnemyReachedEnd) {
         if (!this.isMoving || isGamePaused) return;
 
-        const target = this.path[this.currentWaypointIndex];
+        let target = this.path[this.currentWaypointIndex];
+        if (this.type === 'air') {
+            target = target.clone();
+            target.y += 10;
+        }
+
         const direction = new THREE.Vector3().subVectors(target, this.enemy.position);
         const distance = direction.length();
 

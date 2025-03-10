@@ -9,7 +9,7 @@ function createOutline(mesh) {
 
     const outline = new THREE.LineSegments(edges, outlineMaterial);
     outline.renderOrder = 1;
-    outline.scale.multiplyScalar(1.02);
+    outline.scale.multiplyScalar(1.05);
 
     return outline;
 }

@@ -13,7 +13,6 @@ let isListenerAdded = false;
 console.log("Main.js script loaded");
 
 function init() {
-    // Only add the listener if it's not already added
     if (!isListenerAdded) {
         window.addEventListener("keydown", handleKeyPress);
         isListenerAdded = true;
@@ -97,7 +96,6 @@ function removeUnit(unit) {
         }
         scene.remove(unit.mesh);
 
-        // Calculate refund
         const unitCost = unitConfig[unit.type].price;
         let totalSpent = unitCost;
         for (const path in unit.pathLevels) {
@@ -176,19 +174,19 @@ let enemyInterval = null;
 // Wave index
 const waveConfig = [
     [
-        { speed: 5, health: 1000 },
+        { speed: 5, health: 1000, type: 'ground' },
     ],
     [
-        { speed: 5, health: 1000 },
+        { speed: 5, health: 1000, type: 'air' },
     ],
     [
         { speed: 5, health: 1000 },
     ],
 ];
 
-function spawnEnemy(path, delay, speed, health) {
+function spawnEnemy(path, delay, speed, health, type) {
     setTimeout(() => {
-        const enemy = new Enemy(scene, path, speed, health);
+        const enemy = new Enemy(scene, path, speed, health, type);
         enemies[enemy.id] = enemy;
 
         hoverableObjects.push(enemy.enemy);
@@ -207,7 +205,7 @@ function spawnWave() {
 
     for (let i = 0; i < waveData.length; i++) {
         const enemyData = waveData[i];
-        spawnEnemy(path, i * spawnDelay, enemyData.speed, enemyData.health);
+        spawnEnemy(path, i * spawnDelay, enemyData.speed, enemyData.health, enemyData.type);
     }
     waveCount++;
 }
@@ -260,7 +258,7 @@ function onEnemyReachedEnd(enemy) {
     updateHealthBar();
 
     scene.remove(enemy.enemy);
-    delete enemies[enemy.id];c
+    delete enemies[enemy.id];
 }
 function showUnitMenu(unit) {
     const sideMenu = document.getElementById('side-menu');
@@ -338,7 +336,6 @@ function handleObjectClick(position, object) {
     controls.target.set(position.x, position.y, position.z);
     controls.update();
 
-    // Check if the clicked object is a unit
     const clickedUnit = units.find(unit => unit.mesh.uuid === object.uuid);
     if (clickedUnit) {
         showUnitMenu(clickedUnit);
