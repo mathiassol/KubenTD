@@ -346,6 +346,34 @@ function showUnitMenu(unit) {
 let selectedUUID = null;
 let selectedObject = null;
 
+function generateUnitMenu() {
+    const unitsContainer = document.getElementById('units');
+    unitsContainer.innerHTML = ''; // Clear existing units
+
+    for (const unitType in unitConfig) {
+        const unit = unitConfig[unitType];
+        const unitElement = document.createElement('div');
+        unitElement.className = 'unit';
+        unitElement.dataset.target = unit.target || 'ground'; // Default to 'ground' if target is not specified
+
+        const unitImage = document.createElement('img');
+        unitImage.src = `path/to/${unitType}-unit-image.png`; // Adjust the path as needed
+        unitImage.alt = `${unitType} Unit`;
+
+        const unitPrice = document.createElement('div');
+        unitPrice.className = 'price';
+        unitPrice.textContent = `$${unit.price}`;
+
+        unitElement.appendChild(unitImage);
+        unitElement.appendChild(unitPrice);
+        unitsContainer.appendChild(unitElement);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    generateUnitMenu();
+});
+
 function handleObjectClick(position, object) {
     if (!object) {
         console.warn("Clicked object is undefined.");

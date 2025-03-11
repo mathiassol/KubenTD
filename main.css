@@ -252,15 +252,16 @@ html, body {
     font-size: 16px;
 }
 
+@import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap');
+
 #cash-balance {
     position: fixed;
     top: 5vh;
     left: 2vw;
-    background-color: rgba(0, 0, 0, 0.7);
     color: white;
-    padding: 1vh 2vw;
-    border-radius: 1vh;
-    font-size: 2vh;
+    font-size: 4vh;
+    font-family: 'Permanent Marker', cursive;
+    font-weight: bold;-webkit-text-stroke: 3px black;
     z-index: 1000;
 }
 
@@ -310,4 +311,53 @@ html, body {
 
 .tab-content.active {
     display: block;
+}
+
+#units {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1vh;
+    padding: 0.5%;
+    background-color: #323232;
+    left: -15%;
+    width: 14%;
+    height: 100%;
+    overflow-y: auto; /* Enable vertical scrolling */
+    transition: ease-in-out 0.5s;
+}
+
+.unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 1vh;
+    color: white;
+    text-align: center;
+    height: 100px;
+    width: 100%;
+}
+
+.unit img {
+    width: 80%;
+    height: auto;
+    border-radius: 0.5vh;
+}
+
+.unit .price {
+    margin-top: 0.5vh;
+    font-size: 1.8vh;
+}
+
+.unit[data-target="ground"] {
+    background-color: green;
+}
+
+.unit[data-target="air"] {
+    background-color: blue;
+}
+
+.unit[data-target="hybrid"] {
+    background-color: purple;
 }

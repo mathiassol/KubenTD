@@ -35,6 +35,21 @@
     </div>
 </div>
 
+<div id="units">
+    <div class="unit" data-target="ground">
+        <img src="path/to/ground-unit-image.png" alt="Ground Unit">
+        <div class="price">$100</div>
+    </div>
+    <div class="unit" data-target="air">
+        <img src="path/to/air-unit-image.png" alt="Air Unit">
+        <div class="price">$150</div>
+    </div>
+    <div class="unit" data-target="hybrid">
+        <img src="path/to/hybrid-unit-image.png" alt="Hybrid Unit">
+        <div class="price">$200</div>
+    </div>
+    <!-- Add more units as needed -->
+</div>
 <nav class="menu">
     <input type="checkbox" href="#" class="menu-open" name="menu-open" id="menu-open">
     <label class="menu-open-button" for="menu-open">
@@ -45,13 +60,27 @@
 
     <a href="#" class="menu-item blue"> <i class="fa fa-anchor"></i> </a>
     <a href="#" class="menu-item green"> <i class="fa fa-coffee"></i> </a>
-    <a href="#" class="menu-item red"> <i class="fa fa-heart"></i>Quit</a>
-    <a href="#" class="menu-item purple"> <i class="fa fa-microphone"></i> </a>
+    <a href="mainmenu.html" class="menu-item red"> <i class="fa fa-heart"></i>Quit</a>
+    <a href="#" id="btn-units" class="menu-item purple"> <i class="fa fa-microphone"></i> </a>
 </nav>
 
 <div class="command-prompt" id="commandPrompt">
     <input type="text" class="command-input" id="commandInput" placeholder="Enter command...">
 </div>
 <script type="module" src="Scripts/Main.js"></script>
+<script>
+    document.getElementById('btn-units').addEventListener('click', function() {
+        const sideMenu = document.getElementsByClassName('menu')[0];
+        const units = document.getElementById('units');
+        if (sideMenu.style.left == '16%') {
+            sideMenu.style.left = '1%';
+            units.style.left = '-15%';
+        } else {
+            sideMenu.style.left = '16%';
+            units.style.left = '0%';
+            console.log(1)
+        }
+    });
+</script>
 </body>
 </html>

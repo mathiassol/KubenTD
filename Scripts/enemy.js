@@ -29,12 +29,6 @@ export default class Enemy {
         this.scene.add(this.enemy);
         console.log('Enemy created:', this.type);
 
-        this.healthBarElement = document.getElementById('enemy-health-bar');
-    }
-
-    updateHealthBar() {
-        const healthPercentage = (this.health / this.maxHealth) * 100;
-        this.healthBarElement.style.width = `${healthPercentage}px`;
     }
 
     update(deltaTime, onEnemyReachedEnd) {
@@ -64,7 +58,6 @@ export default class Enemy {
 
         // Update distance to end
         this.updateDistanceToEnd();
-        this.updateHealthBar();
     }
 
     updateDistanceToEnd() {
