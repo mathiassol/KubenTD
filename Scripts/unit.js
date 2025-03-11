@@ -10,6 +10,10 @@ export default class Unit {
         this.chosenPaths = new Set();
         this.baseStats = { ...unitConfig[this.type].baseStats };
         this.target = unitConfig[this.type].target;
+        this.invisible = unitConfig[this.type].invisible;
+        this.magic = unitConfig[this.type].magic;
+        this.projectile = unitConfig[this.type].projectile;
+        this.penetration = unitConfig[this.type].penetration;
         this.setStats();
         this.lastAttackTime = 0;
 
@@ -36,7 +40,7 @@ export default class Unit {
             });
         }
 
-        console.log(`Stats set: Damage: ${this.damage}, Range: ${this.range}, Attack Speed: ${this.attackSpeed}, type: ${this.target}`);
+        console.log(`Stats set: Damage: ${this.damage}, Range: ${this.range}, Attack Speed: ${this.attackSpeed}, type: ${this.target}, invisible: ${this.invisible}, magic: ${this.magic}, projectile: ${this.projectile}, penetration: ${this.penetration}`);
     }
 
     canUpgradePath(path) {
@@ -72,10 +76,8 @@ export default class Unit {
                 this.setStats();
                 console.log(`Upgraded ${path} to level ${this.pathLevels[path]}.`);
             } else {
-                console.log("Not enough cash for upgrade.");
             }
         } else {
-            console.log(`Cannot upgrade ${path} further or path limit reached.`);
         }
     }
 
@@ -91,9 +93,16 @@ export default class Unit {
         let targets = this.findEnemiesInRange(enemies);
         if (targets.length > 0) {
             targets.sort((a, b) => a.distanceToEnd - b.distanceToEnd);
+            this.invisible = unitConfig[this.type].invisible;
 
             if (this.type !== 'hybrid') {
                 targets = targets.filter(target => this.target === target.type);
+            }
+            if (this.invisible === false){
+                targets = targets.filter(target => target.invisible === false);
+            }
+            if (this.penetration === false){
+                targets = targets.filter(target => target.steal === false);
             }
 
             let newTarget = targets[0];
@@ -108,7 +117,12 @@ export default class Unit {
                 this.mesh.rotation.y = angle;
 
                 if (this.lastAttackTime >= this.attackSpeed) {
-                    this.currentTarget.health -= this.damage;
+                    console.log("Attack triggered");
+                    if (this.magic === false && this.currentTarget.magic === true) {
+                        this.currentTarget.health -= (this.damage * 0.7);
+                    } else{
+                        this.currentTarget.health -= this.damage;
+                    }
                     if (this.currentTarget.health <= 0) {
                         this.scene.remove(this.currentTarget.enemy);
                         delete enemies[this.currentTarget.id];

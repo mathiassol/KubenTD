@@ -141,7 +141,7 @@ function showNotification(message) {
         notification.remove();
     }, 3000);
 }
-let cash = 300;
+let cash = 200000;
 
 export function updateCashDisplay() {
     const cashBalanceElement = document.getElementById('cash-balance');
@@ -173,8 +173,7 @@ let enemyInterval = null;
 // Wave index
 const waveConfig = [
     [
-        { speed: 5, health: 40, type: 'ground', material: 'arcane' },
-        { speed: 5, health: 40, type: 'air', material: 'wood' },
+        { speed: 5, health: 9, type: 'air', invisible: true, magic: true, steal: false },
     ],
     [
         { speed: 10, health: 40, type: 'air' },
@@ -184,9 +183,9 @@ const waveConfig = [
     ],
 ];
 
-function spawnEnemy(path, delay, speed, health, type, material) {
+function spawnEnemy(path, delay, speed, health, type, invisible, magic, steal) {
     setTimeout(() => {
-        const enemy = new Enemy(scene, path, speed, health, type, material);
+        const enemy = new Enemy(scene, path, speed, health, type, invisible, magic, steal);
         enemies[enemy.id] = enemy;
 
         hoverableObjects.push(enemy.enemy);
@@ -205,7 +204,8 @@ function spawnWave() {
 
     for (let i = 0; i < waveData.length; i++) {
         const enemyData = waveData[i];
-        spawnEnemy(path, i * spawnDelay, enemyData.speed, enemyData.health, enemyData.type, enemyData.material);
+        console.log(enemyData.steal)
+        spawnEnemy(path, i * spawnDelay, enemyData.speed, enemyData.health, enemyData.type, enemyData.invisible, enemyData.magic, enemyData.steal);
     }
     waveCount++;
 }
@@ -434,7 +434,7 @@ initRaycasting(scene, camera, floorMesh, hoverableObjects, handleObjectClick);
 
 const speedFactor = 1;
 let frameCount = 0;
-const targetFPS = 120;
+const targetFPS = 100;
 const frameDuration = 1000 / targetFPS;
 let lastFrameTime = 0;
 
