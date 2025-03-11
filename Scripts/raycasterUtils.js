@@ -39,12 +39,6 @@ function initRaycasting(scene, camera, floorMesh, hoverableObjects, onObjectClic
                 removeOutline();
                 hoveredObject = newHoveredObject;
                 addOutline(hoveredObject);
-
-                if (hoveredObject.userData && hoveredObject.userData.enemy) {
-                    const enemy = hoveredObject.userData.enemy;
-                    enemy.showHealthBar();
-                    updateHealthBarPosition(enemy);
-                }
             }
         } else {
             removeOutline();

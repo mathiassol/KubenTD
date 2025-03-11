@@ -9,7 +9,6 @@ import { unitConfig } from './unitConfig.js';
 
 let isListenerAdded = false;
 
-
 console.log("Main.js script loaded");
 
 function init() {
@@ -174,7 +173,8 @@ let enemyInterval = null;
 // Wave index
 const waveConfig = [
     [
-        { speed: 5, health: 40, type: 'air' },
+        { speed: 5, health: 40, type: 'ground', material: 'arcane' },
+        { speed: 5, health: 40, type: 'air', material: 'wood' },
     ],
     [
         { speed: 10, health: 40, type: 'air' },
@@ -184,9 +184,9 @@ const waveConfig = [
     ],
 ];
 
-function spawnEnemy(path, delay, speed, health, type) {
+function spawnEnemy(path, delay, speed, health, type, material) {
     setTimeout(() => {
-        const enemy = new Enemy(scene, path, speed, health, type);
+        const enemy = new Enemy(scene, path, speed, health, type, material);
         enemies[enemy.id] = enemy;
 
         hoverableObjects.push(enemy.enemy);
@@ -205,7 +205,7 @@ function spawnWave() {
 
     for (let i = 0; i < waveData.length; i++) {
         const enemyData = waveData[i];
-        spawnEnemy(path, i * spawnDelay, enemyData.speed, enemyData.health, enemyData.type);
+        spawnEnemy(path, i * spawnDelay, enemyData.speed, enemyData.health, enemyData.type, enemyData.material);
     }
     waveCount++;
 }
@@ -348,16 +348,16 @@ let selectedObject = null;
 
 function generateUnitMenu() {
     const unitsContainer = document.getElementById('units');
-    unitsContainer.innerHTML = ''; // Clear existing units
+    unitsContainer.innerHTML = '';
 
     for (const unitType in unitConfig) {
         const unit = unitConfig[unitType];
         const unitElement = document.createElement('div');
         unitElement.className = 'unit';
-        unitElement.dataset.target = unit.target || 'ground'; // Default to 'ground' if target is not specified
+        unitElement.dataset.target = unit.target || 'ground';
 
         const unitImage = document.createElement('img');
-        unitImage.src = `path/to/${unitType}-unit-image.png`; // Adjust the path as needed
+        unitImage.src = `units/${unitType}.png`;
         unitImage.alt = `${unitType} Unit`;
 
         const unitPrice = document.createElement('div');
@@ -367,6 +367,13 @@ function generateUnitMenu() {
         unitElement.appendChild(unitImage);
         unitElement.appendChild(unitPrice);
         unitsContainer.appendChild(unitElement);
+
+        unitElement.addEventListener('click', () => {
+            console.log(`Unit ${unitType} clicked`);
+            Unit.startPlacementMode(scene, camera, unitType, (x, y, z, type) => {
+                createUnit(x, y, z, type);
+            });
+        });
     }
 }
 
@@ -427,23 +434,34 @@ initRaycasting(scene, camera, floorMesh, hoverableObjects, handleObjectClick);
 
 const speedFactor = 1;
 let frameCount = 0;
+const targetFPS = 120;
+const frameDuration = 1000 / targetFPS;
+let lastFrameTime = 0;
+
 function draw() {
-    frameCount++;
+    const currentTime = performance.now();
+    const deltaTime = currentTime - lastFrameTime;
 
-    const deltaTime = clock.getDelta() * speedFactor;
+    if (deltaTime >= frameDuration) {
+        frameCount++;
+        const adjustedDeltaTime = clock.getDelta() * speedFactor;
 
-    for (let id in enemies) {
-        enemies[id].update(deltaTime, onEnemyReachedEnd);
+        for (let id in enemies) {
+            enemies[id].update(adjustedDeltaTime, onEnemyReachedEnd);
+        }
+
+        updateCamera(selectedObject);
+
+        for (let unit of units) {
+            unit.update(enemies, adjustedDeltaTime);
+        }
+        updateCashDisplay();
+
+        renderer.render(scene, camera);
+        lastFrameTime = currentTime;
     }
 
-    updateCamera(selectedObject);
-
-    for (let unit of units) {
-        unit.update(enemies, deltaTime);
-    }
-    updateCashDisplay()
-
-    renderer.render(scene, camera);
+    requestAnimationFrame(draw);
 }
 
 renderer.setAnimationLoop(draw);

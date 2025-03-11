@@ -33,7 +33,7 @@ html, body {
 
 .command-prompt {
     position: fixed;
-    bottom: -10vh; /* Hidden initially */
+    bottom: -10vh;
     left: 0;
     width: 100%;
     background: rgba(0, 0, 0, 0.8);
@@ -84,7 +84,7 @@ html, body {
     position: fixed;
     right: 0;
     top: 0;
-    width: 20vw; /* Adjusted width */
+    width: 20vw;
     height: 100%;
     background: #f0f0f0;
     padding: 1vh;
@@ -323,7 +323,7 @@ html, body {
     left: -15%;
     width: 14%;
     height: 100%;
-    overflow-y: auto; /* Enable vertical scrolling */
+    overflow-y: auto;
     transition: ease-in-out 0.5s;
 }
 
@@ -335,7 +335,7 @@ html, body {
     border-radius: 1vh;
     color: white;
     text-align: center;
-    height: 100px;
+    height: 200px;
     width: 100%;
 }
 

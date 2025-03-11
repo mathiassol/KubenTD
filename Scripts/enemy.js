@@ -9,26 +9,44 @@ document.addEventListener('visibilitychange', () => {
     lastTime = performance.now();
 });
 export default class Enemy {
-    constructor(scene, path, speed, enemyHealth, type) {
+    constructor(scene, path, speed, enemyHealth, type, material) {
         this.scene = scene;
         this.path = path;
         this.speed = speed;
         this.health = enemyHealth;
         this.type = type;
+        this.material = material;
         this.currentWaypointIndex = 0;
         this.isMoving = true;
 
+
         this.id = `enemy_${enemyCounter++}`;
         this.enemyGeometry = new THREE.SphereGeometry(2, 16, 16);
-        this.enemyMaterial = new THREE.MeshLambertMaterial({ color: 'red' });
+        this.updateMaterial();
         this.enemy = new THREE.Mesh(this.enemyGeometry, this.enemyMaterial);
 
         if (this.type === 'air') {
             this.enemy.position.set(0, 10, 0);
         }
         this.scene.add(this.enemy);
-        console.log('Enemy created:', this.type);
+        console.log('Enemy created:', this.type,",", this.material);
 
+    }
+    updateMaterial() {
+        switch (true) {
+            case this.material === 'default':
+                this.enemyMaterial = new THREE.MeshLambertMaterial({ color: 'red' });
+                break;
+            case this.material === 'wood':
+                this.enemyMaterial = new THREE.MeshLambertMaterial({ color: '#b9835a' });
+                break;
+            case this.material === 'steal':
+                this.enemyMaterial = new THREE.MeshLambertMaterial({ color: '#7f7f7f' });
+                break;
+            case this.material === 'arcane':
+                this.enemyMaterial = new THREE.MeshLambertMaterial({ color: '#57fff7' });
+                break;
+        }
     }
 
     update(deltaTime, onEnemyReachedEnd) {
@@ -56,7 +74,6 @@ export default class Enemy {
             }
         }
 
-        // Update distance to end
         this.updateDistanceToEnd();
     }
 

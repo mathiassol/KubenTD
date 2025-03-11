@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { unitConfig } from './unitConfig.js';
-import { cash, setCash, updateCashDisplay } from './Main.js';
+import { cash, setCash } from './Main.js';
 
 export default class Unit {
     constructor(scene, x, y, z, type) {
@@ -103,7 +103,6 @@ export default class Unit {
                     this.currentTarget = newTarget;
                 }
 
-                // Rotate to look at the current target
                 const direction = new THREE.Vector3().subVectors(this.currentTarget.enemy.position, this.mesh.position).normalize();
                 const angle = Math.atan2(direction.x, direction.z);
                 this.mesh.rotation.y = angle;
@@ -127,6 +126,14 @@ export default class Unit {
             new THREE.BoxGeometry(5, 10, 5),
             new THREE.MeshLambertMaterial({ color: 'green', transparent: true, opacity: 0.5 })
         );
+
+        const circleGeometry = new THREE.CircleGeometry(7.5, 32);
+        const circleMaterial = new THREE.MeshBasicMaterial({ color: 'blue', transparent: true, opacity: 0.5 });
+        const circleMesh = new THREE.Mesh(circleGeometry, circleMaterial);
+        circleMesh.rotation.x = -Math.PI / 2;
+        circleMesh.position.y = -4.8;
+        previewMesh.add(circleMesh);
+
         scene.add(previewMesh);
 
         function onMouseMove(event) {
@@ -140,19 +147,41 @@ export default class Unit {
             const intersects = raycaster.intersectObject(scene.children.find(obj => obj.isMesh));
 
             if (intersects.length > 0) {
-                previewMesh.position.set(intersects[0].point.x, 0, intersects[0].point.z);
+                const position = intersects[0].point;
+                previewMesh.position.set(position.x, 0, position.z);
+                if (Unit.Colliding(position, scene, previewMesh)) {
+                    circleMesh.material.color.set('red');
+                } else {
+                    circleMesh.material.color.set('blue');
+                }
             }
         }
 
         function onMouseClick() {
-            scene.remove(previewMesh);
-            window.removeEventListener('mousemove', onMouseMove);
-            window.removeEventListener('click', onMouseClick);
-            onPlace(previewMesh.position.x, 0, previewMesh.position.z, type);
+            if (circleMesh.material.color.getHexString() !== 'ff0000') {
+                scene.remove(previewMesh);
+                window.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('click', onMouseClick);
+                onPlace(previewMesh.position.x, 0, previewMesh.position.z, type);
+            }
         }
 
         window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('click', onMouseClick);
+
+        setTimeout(() => {
+            window.addEventListener('click', onMouseClick);
+        }, 200);
+    }
+
+    static Colliding(position, scene, previewMesh) {
+        const collisionRadius = 10;
+        const units = scene.children.filter(obj => obj.isMesh && obj !== previewMesh);
+        for (const unit of units) {
+            if (unit.position.distanceTo(position) < collisionRadius) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 export { Unit };
