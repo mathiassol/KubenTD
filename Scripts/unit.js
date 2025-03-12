@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { unitConfig } from './unitConfig.js';
 import { cash, setCash } from './Main.js';
+import { DamageText } from './damageText.js';
 
 export default class Unit {
     constructor(scene, x, y, z, type) {
@@ -16,6 +17,7 @@ export default class Unit {
         this.penetration = unitConfig[this.type].penetration;
         this.setStats();
         this.lastAttackTime = 0;
+        this.damageTexts = []; // Store DamageText instances
 
         this.mesh = new THREE.Mesh(
             new THREE.BoxGeometry(5, 10, 5),
@@ -118,11 +120,16 @@ export default class Unit {
 
                 if (this.lastAttackTime >= this.attackSpeed) {
                     console.log("Attack triggered");
+                    let damageDealt = this.damage;
                     if (this.magic === false && this.currentTarget.magic === true) {
-                        this.currentTarget.health -= (this.damage * 0.7);
-                    } else{
-                        this.currentTarget.health -= this.damage;
+                        damageDealt *= 0.7;
                     }
+                    this.currentTarget.health -= damageDealt;
+
+                    // Create and show damage text
+                    const damageText = new DamageText(this.scene, damageDealt.toString(), this.currentTarget.enemy);
+                    this.damageTexts.push(damageText);
+
                     if (this.currentTarget.health <= 0) {
                         this.scene.remove(this.currentTarget.enemy);
                         delete enemies[this.currentTarget.id];
@@ -132,6 +139,9 @@ export default class Unit {
                 }
             }
         }
+
+        // Update and remove damage texts
+        this.damageTexts = this.damageTexts.filter(damageText => damageText.update());
     }
 
     static startPlacementMode(scene, camera, type, onPlace) {

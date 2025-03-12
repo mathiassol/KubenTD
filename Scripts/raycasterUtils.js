@@ -98,18 +98,6 @@ function initRaycasting(scene, camera, floorMesh, hoverableObjects, onObjectClic
             outlineMesh = null;
         }
     }
-
-    function updateHealthBarPosition(enemy) {
-        const vector = new THREE.Vector3();
-        enemy.enemy.getWorldPosition(vector);
-        vector.project(camera);
-
-        const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
-        const y = (vector.y * -0.5 + 0.5) * window.innerHeight;
-
-        enemy.healthBarElement.style.left = `${x - 50}px`;
-        enemy.healthBarElement.style.top = `${y - 10}px`;
-    }
 }
 
 export { initRaycasting };

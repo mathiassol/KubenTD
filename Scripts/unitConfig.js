@@ -1,12 +1,12 @@
 const unitConfig = {
     attacker: {
         price: 100,
-        baseStats: { damage: 10, range: 50, attackSpeed: 1.5 },
+        baseStats: { damage: 10, range: 50, attackSpeed: 0.29 },
         target: 'air',
-        invisible: false,
+        invisible: true,
         magic: false,
         projectile: true,
-        penetration: false,
+        penetration: true,
         path1: [
             { damage: 10, range: 5, attackSpeed: -0.1, upgradePrice: 50 },
             { damage: 10, range: 5, attackSpeed: -0.1, invisible: true, upgradePrice: 50 },

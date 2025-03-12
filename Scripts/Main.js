@@ -5,6 +5,7 @@ import { buildWorld } from "./worldElements.js";
 import Enemy from './enemy.js';
 import Unit from './unit.js';
 import { unitConfig } from './unitConfig.js';
+import { DamageText } from "./damageText.js";
 // Renderer
 
 let isListenerAdded = false;
@@ -94,6 +95,11 @@ function removeUnit(unit) {
             hoverableObjects.splice(hoverIndex, 1);
         }
         scene.remove(unit.mesh);
+        unit.mesh.geometry.dispose();
+        unit.mesh.material.dispose();
+        if (unit.mesh.material.map) {
+            unit.mesh.material.map.dispose();
+        }
 
         const unitCost = unitConfig[unit.type].price;
         let totalSpent = unitCost;
@@ -173,7 +179,7 @@ let enemyInterval = null;
 // Wave index
 const waveConfig = [
     [
-        { speed: 5, health: 9, type: 'air', invisible: true, magic: true, steal: false },
+        { speed: 5, health: 100, type: 'air', invisible: true, magic: true, steal: false },
     ],
     [
         { speed: 10, health: 40, type: 'air' },
@@ -259,6 +265,7 @@ function onEnemyReachedEnd(enemy) {
 
     scene.remove(enemy.enemy);
     delete enemies[enemy.id];
+
 }
 function createRangeCircle(unit) {
     const geometry = new THREE.CircleGeometry(unit.range, 64);
@@ -389,6 +396,14 @@ function handleObjectClick(position, object) {
 
     console.log(`Clicked object at: x=${position.x}, y=${position.y}, z=${position.z}`);
 
+    // Hide the health bar of the previously selected enemy
+    if (selectedObject) {
+        const previousEnemy = Object.values(enemies).find(enemy => enemy.enemy.uuid === selectedObject.uuid);
+        if (previousEnemy) {
+            previousEnemy.healthBar.visible = false;
+        }
+    }
+
     selectedUUID = object.uuid;
     selectedObject = object;
     console.log(`Selected UUID: ${selectedUUID}`);
@@ -399,6 +414,11 @@ function handleObjectClick(position, object) {
     const clickedUnit = units.find(unit => unit.mesh.uuid === object.uuid);
     if (clickedUnit) {
         showUnitMenu(clickedUnit);
+    }
+
+    const clickedEnemy = Object.values(enemies).find(enemy => enemy.enemy.uuid === object.uuid);
+    if (clickedEnemy) {
+        clickedEnemy.healthBar.visible = true;
     }
 }
 
@@ -438,6 +458,8 @@ const targetFPS = 100;
 const frameDuration = 1000 / targetFPS;
 let lastFrameTime = 0;
 
+const tempVector = new THREE.Vector3();
+
 function draw() {
     const currentTime = performance.now();
     const deltaTime = currentTime - lastFrameTime;
@@ -447,7 +469,7 @@ function draw() {
         const adjustedDeltaTime = clock.getDelta() * speedFactor;
 
         for (let id in enemies) {
-            enemies[id].update(adjustedDeltaTime, onEnemyReachedEnd);
+            enemies[id].update(adjustedDeltaTime, onEnemyReachedEnd, camera);
         }
 
         updateCamera(selectedObject);
@@ -459,6 +481,7 @@ function draw() {
 
         renderer.render(scene, camera);
         lastFrameTime = currentTime;
+        DamageText.updateAll();
     }
 
     requestAnimationFrame(draw);
