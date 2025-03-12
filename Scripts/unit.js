@@ -11,10 +11,10 @@ export default class Unit {
         this.chosenPaths = new Set();
         this.baseStats = { ...unitConfig[this.type].baseStats };
         this.target = unitConfig[this.type].target;
-        this.invisible = unitConfig[this.type].invisible;
-        this.magic = unitConfig[this.type].magic;
-        this.projectile = unitConfig[this.type].projectile;
-        this.penetration = unitConfig[this.type].penetration;
+        this.invisible = unitConfig[type].invisible || false;
+        this.magic = unitConfig[type].magic || false;
+        this.projectile = unitConfig[type].projectile || false;
+        this.penetration = unitConfig[type].penetration || false;
         this.setStats();
         this.lastAttackTime = 0;
         this.damageTexts = []; // Store DamageText instances
@@ -126,7 +126,6 @@ export default class Unit {
                     }
                     this.currentTarget.health -= damageDealt;
 
-                    // Create and show damage text
                     const damageText = new DamageText(this.scene, damageDealt.toString(), this.currentTarget.enemy);
                     this.damageTexts.push(damageText);
 
@@ -140,7 +139,6 @@ export default class Unit {
             }
         }
 
-        // Update and remove damage texts
         this.damageTexts = this.damageTexts.filter(damageText => damageText.update());
     }
 

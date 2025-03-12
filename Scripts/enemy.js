@@ -10,12 +10,12 @@ document.addEventListener('visibilitychange', () => {
 });
 
 export default class Enemy {
-    // enemy constructor
     constructor(scene, path, speed, enemyHealth, type, invisible = false, magic = false, steal = false) {
         this.scene = scene;
         this.path = path;
         this.speed = speed;
         this.health = enemyHealth;
+        this.maxHealth = enemyHealth;
         this.type = type;
         this.invisible = invisible;
         this.magic = magic;
@@ -23,30 +23,26 @@ export default class Enemy {
         this.currentWaypointIndex = 0;
         this.isMoving = true;
 
-        //enemy model
         this.id = `enemy_${enemyCounter++}`;
         this.enemyGeometry = new THREE.SphereGeometry(2, 16, 16);
         this.enemyMaterial = new THREE.MeshLambertMaterial({ color: 'red' });
         this.enemy = new THREE.Mesh(this.enemyGeometry, this.enemyMaterial);
 
-        // spawn higher if air
         if (this.type === 'air') {
             this.enemy.position.set(0, 10, 0);
         }
         this.scene.add(this.enemy);
 
-        // health bar
         const healthBarGeometry = new THREE.PlaneGeometry(5, 0.5);
-        const healthBarMaterial = new THREE.MeshBasicMaterial({ color: 'green', side: THREE.DoubleSide });
+        const healthBarMaterial = new THREE.MeshBasicMaterial({ color: '#00db08', side: THREE.DoubleSide });
         this.healthBar = new THREE.Mesh(healthBarGeometry, healthBarMaterial);
         this.healthBar.position.set(0, 3, 0);
         this.healthBar.visible = false;
         this.enemy.add(this.healthBar);
 
-        console.log("Enemy health;", this.health, "type:", this.type, ", invisible:", this.invisible, ", magic:", this.magic, "steal:", this.steal);
+        console.log("Enemy health:", this.health, "type:", this.type, ", invisible:", this.invisible, ", magic:", this.magic, "steal:", this.steal);
     }
 
-    // update enemy
     update(deltaTime, onEnemyReachedEnd, camera) {
         if (!this.isMoving || isGamePaused) return;
 
@@ -56,7 +52,6 @@ export default class Enemy {
             target.y += 10;
         }
 
-        // Linear interpolation and or / pathfinding
         const direction = new THREE.Vector3().subVectors(target, this.enemy.position);
         const distance = direction.length();
         if (distance > 0.5) {
@@ -86,5 +81,16 @@ export default class Enemy {
 
     updateHealthBarRotation(camera) {
         this.healthBar.lookAt(camera.position);
+    }
+
+    takeDamage(amount) {
+        this.health -= amount;
+        if (this.health < 0) this.health = 0;
+        this.updateHealthBar();
+    }
+
+    updateHealthBar() {
+        const healthPercentage = this.health / this.maxHealth;
+        this.healthBar.scale.set(healthPercentage, 1, 1);
     }
 }
