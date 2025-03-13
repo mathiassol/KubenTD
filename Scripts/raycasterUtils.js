@@ -1,22 +1,25 @@
 import * as THREE from 'three';
 
-function createOutline(mesh) {
-    const edges = new THREE.EdgesGeometry(mesh.geometry);
-    const outlineMaterial = new THREE.LineBasicMaterial({
+function createSelectionBox(mesh) {
+    const box = new THREE.Box3().setFromObject(mesh);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+
+    const geometry = new THREE.BoxGeometry(size.x, size.y, size.z);
+    const material = new THREE.MeshBasicMaterial({
         color: 0xffffff,
-        linewidth: 3
+        wireframe: true
     });
 
-    const outline = new THREE.LineSegments(edges, outlineMaterial);
-    outline.renderOrder = 1;
-    outline.scale.multiplyScalar(1.05);
+    const selectionBox = new THREE.Mesh(geometry, material);
+    selectionBox.renderOrder = 1;
 
-    return outline;
+    return selectionBox;
 }
 
 function initRaycasting(scene, camera, floorMesh, hoverableObjects, onObjectClick) {
     let hoveredObject = null;
-    let outlineMesh = null;
+    let selectionBox = null;
 
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
@@ -36,19 +39,16 @@ function initRaycasting(scene, camera, floorMesh, hoverableObjects, onObjectClic
             const newHoveredObject = intersects[0].object;
 
             if (hoverableObjects.includes(newHoveredObject) && hoveredObject !== newHoveredObject) {
-                removeOutline();
+                removeSelectionBox();
                 hoveredObject = newHoveredObject;
-                addOutline(hoveredObject);
+                addSelectionBox(hoveredObject);
             }
         } else {
-            removeOutline();
-            if (hoveredObject && hoveredObject.userData && hoveredObject.userData.enemy) {
-                hoveredObject.userData.enemy.hideHealthBar();
-            }
+            removeSelectionBox();
             hoveredObject = null;
         }
         if (hoveredObject && !scene.getObjectById(hoveredObject.id)) {
-            removeOutline();
+            removeSelectionBox();
             hoveredObject = null;
         }
     }
@@ -63,39 +63,40 @@ function initRaycasting(scene, camera, floorMesh, hoverableObjects, onObjectClic
     }
 
     function getIntersects(raycaster) {
-        return raycaster.intersectObjects(hoverableObjects);
+        return raycaster.intersectObjects(hoverableObjects.filter(obj => obj && obj.isObject3D));
     }
 
-    function addOutline(target) {
+    function addSelectionBox(target) {
         if (!target) return;
-        outlineMesh = createOutline(target);
-        scene.add(outlineMesh);
+        selectionBox = createSelectionBox(target);
+        scene.add(selectionBox);
 
-        updateOutline();
+        updateSelectionBox();
     }
 
-    function updateOutline() {
-        if (outlineMesh && hoveredObject) {
+    function updateSelectionBox() {
+        if (selectionBox && hoveredObject) {
             if (!scene.getObjectById(hoveredObject.id)) {
-                removeOutline();
+                removeSelectionBox();
                 hoveredObject = null;
                 return;
             }
 
             hoveredObject.updateMatrixWorld(true);
-            outlineMesh.matrix.copy(hoveredObject.matrixWorld);
-            outlineMesh.matrix.decompose(outlineMesh.position, outlineMesh.quaternion, outlineMesh.scale);
+            selectionBox.position.copy(hoveredObject.position);
+            selectionBox.quaternion.copy(hoveredObject.quaternion);
+            selectionBox.scale.copy(hoveredObject.scale);
 
-            requestAnimationFrame(updateOutline);
+            requestAnimationFrame(updateSelectionBox);
         }
     }
 
-    function removeOutline() {
-        if (outlineMesh) {
-            scene.remove(outlineMesh);
-            outlineMesh.geometry.dispose();
-            outlineMesh.material.dispose();
-            outlineMesh = null;
+    function removeSelectionBox() {
+        if (selectionBox) {
+            scene.remove(selectionBox);
+            selectionBox.geometry.dispose();
+            selectionBox.material.dispose();
+            selectionBox = null;
         }
     }
 }

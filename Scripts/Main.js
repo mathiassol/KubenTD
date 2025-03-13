@@ -94,11 +94,26 @@ function removeUnit(unit) {
         if (hoverIndex > -1) {
             hoverableObjects.splice(hoverIndex, 1);
         }
-        scene.remove(unit.mesh);
-        unit.mesh.geometry.dispose();
-        unit.mesh.material.dispose();
-        if (unit.mesh.material.map) {
-            unit.mesh.material.map.dispose();
+        if (unit.mesh) {
+            scene.remove(unit.mesh);
+            if (unit.mesh.geometry) {
+                unit.mesh.geometry.dispose();
+            }
+            if (unit.mesh.material) {
+                unit.mesh.material.dispose();
+            }
+        }
+
+        // Remove selection box
+        const selectionBox = unit.hoverableObjects.find(obj => obj.userData.isSelectionBox);
+        if (selectionBox) {
+            scene.remove(selectionBox);
+            if (selectionBox.geometry) {
+                selectionBox.geometry.dispose();
+            }
+            if (selectionBox.material) {
+                selectionBox.material.dispose();
+            }
         }
 
         const unitCost = unitConfig[unit.type].price;
@@ -114,16 +129,15 @@ function removeUnit(unit) {
     }
 }
 
+const hoverableObjects = [boxMesh2, boxMesh];
+
 function createUnit(x, y, z, type) {
     const unitCost = unitConfig[type].price;
     if (cash >= unitCost) {
-        const unit = new Unit(scene, x, y, z, type);
+        const unit = new Unit(scene, x, y, z, type, hoverableObjects);
         units.push(unit);
         cash -= unitCost;
         updateCashDisplay();
-        if (!hoverableObjects.includes(unit.mesh)) {
-            hoverableObjects.push(unit.mesh);
-        }
     } else {
         showNotification("Not enough cash");
         shakeCanvas();
@@ -209,9 +223,10 @@ function spawnWave() {
     }
 
     for (let i = 0; i < waveData.length; i++) {
-        const enemyData = waveData[i];
-        console.log(enemyData.steal)
-        spawnEnemy(path, i * spawnDelay, enemyData.speed, enemyData.health, enemyData.type, enemyData.invisible, enemyData.magic, enemyData.steal);
+        if (Object.keys(enemies).length < 100) { // Limit the number of enemies
+            const enemyData = waveData[i];
+            spawnEnemy(path, i * spawnDelay, enemyData.speed, enemyData.health, enemyData.type, enemyData.invisible, enemyData.magic, enemyData.steal);
+        }
     }
     waveCount++;
 }
@@ -226,7 +241,7 @@ function handleKeyPress(event) {
     }
     if (event.key === "u" || event.key === "U") {
         Unit.startPlacementMode(scene, camera, 'attacker', (x, y, z, type) => {
-            createUnit(x, y, z, type);
+            createUnit(x, y, z, type, hoverableObjects);
         });
     }
     if (event.key === 'Shift' && event.location === 1) {
@@ -378,7 +393,8 @@ function generateUnitMenu() {
         unitElement.addEventListener('click', () => {
             console.log(`Unit ${unitType} clicked`);
             Unit.startPlacementMode(scene, camera, unitType, (x, y, z, type) => {
-                createUnit(x, y, z, type);
+                createUnit(x, y, z, type, hoverableObjects);
+                console.log(hoverableObjects);
             });
         });
     }
@@ -395,6 +411,26 @@ function handleObjectClick(position, object) {
     }
 
     console.log(`Clicked object at: x=${position.x}, y=${position.y}, z=${position.z}`);
+
+    // Check if the clicked object is a selection box
+    if (object.userData.isSelectionBox) {
+        const unit = object.userData.unit;
+        if (unit) {
+            // Hide the range circle and menu of the previously selected unit
+            if (selectedObject && selectedObject.userData.unit) {
+                const previousUnit = selectedObject.userData.unit;
+                if (previousUnit.rangeCircle) {
+                    scene.remove(previousUnit.rangeCircle);
+                    previousUnit.rangeCircle = null;
+                }
+                const sideMenu = document.getElementById('side-menu');
+                sideMenu.style.display = 'none';
+            }
+            showUnitMenu(unit);
+        }
+        selectedObject = object;
+        return;
+    }
 
     // Hide the health bar of the previously selected enemy
     if (selectedObject) {
@@ -413,6 +449,16 @@ function handleObjectClick(position, object) {
 
     const clickedUnit = units.find(unit => unit.mesh.uuid === object.uuid);
     if (clickedUnit) {
+        // Hide the range circle and menu of the previously selected unit
+        if (selectedObject && selectedObject.userData.unit) {
+            const previousUnit = selectedObject.userData.unit;
+            if (previousUnit.rangeCircle) {
+                scene.remove(previousUnit.rangeCircle);
+                previousUnit.rangeCircle = null;
+            }
+            const sideMenu = document.getElementById('side-menu');
+            sideMenu.style.display = 'none';
+        }
         showUnitMenu(clickedUnit);
     }
 
@@ -439,7 +485,6 @@ function updateCamera(scene) {
     }
 }
 
-const hoverableObjects = [boxMesh2, boxMesh];
 for (let id in enemies) {
     hoverableObjects.push(enemies[id].enemy);
 }
@@ -454,11 +499,9 @@ initRaycasting(scene, camera, floorMesh, hoverableObjects, handleObjectClick);
 
 const speedFactor = 1;
 let frameCount = 0;
-const targetFPS = 100;
+const targetFPS = 180;
 const frameDuration = 1000 / targetFPS;
 let lastFrameTime = 0;
-
-const tempVector = new THREE.Vector3();
 
 function draw() {
     const currentTime = performance.now();
@@ -472,7 +515,7 @@ function draw() {
             enemies[id].update(adjustedDeltaTime, onEnemyReachedEnd, camera);
         }
 
-        updateCamera(selectedObject);
+        updateCamera(scene);
 
         for (let unit of units) {
             unit.update(enemies, adjustedDeltaTime);
@@ -489,6 +532,10 @@ function draw() {
 
 renderer.setAnimationLoop(draw);
 
+function logMemoryUsage() {
+    console.log(renderer.info.memory);
+}
+setInterval(logMemoryUsage, 5000);
 
 export { hoverableObjects };
 
