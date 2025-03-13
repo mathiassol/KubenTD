@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls';
 import { initRaycasting } from './raycasterUtils.js';
 import { buildWorld } from "./worldElements.js";
+import { Lensflare, LensflareElement } from 'three/addons/objects/Lensflare.js';
 import Enemy from './enemy.js';
 import Unit from './unit.js';
 import { unitConfig } from './unitConfig.js';
@@ -31,7 +32,7 @@ renderer.setPixelRatio(window.devicePixelRatio > 1 ? 2 : 1);
 // Scene
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('white');
-
+scene.fog = new THREE.Fog( scene.background, 3500, 15000 );
 // Camera
 const camera = new THREE.PerspectiveCamera(
     75,
@@ -73,8 +74,6 @@ scene.add(boxMesh);
 const boxMesh2 = new THREE.Mesh(geometry, material);
 boxMesh2.position.z = -10;
 scene.add(boxMesh2);
-
-
 
 let playerHealth = 100;
 const healthBar = document.getElementById('health-bar');

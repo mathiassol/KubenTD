@@ -1,11 +1,8 @@
 import * as THREE from 'three';
 export const buildWorld = (scene) => {
-// Light
-    const ambientLight = new THREE.AmbientLight('white', 1);
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight('white', 0.5);
-    directionalLight.position.x = 1;
-    directionalLight.position.z = 2;
+    const directionalLight = new THREE.DirectionalLight('white', 2);
+    directionalLight.position.set(1, 1, 2).normalize();
     scene.add(directionalLight);
+
+
 };
