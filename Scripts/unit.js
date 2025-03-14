@@ -48,17 +48,24 @@ export default class Unit {
 
             const boxGeometry = new THREE.BoxGeometry(10, 10, 10);
             const boxMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0 });
-            this.selectionBox = new THREE.Mesh(boxGeometry, boxMaterial);
-            this.selectionBox.position.set(x, y, z);
-            this.selectionBox.userData.isSelectionBox = true;
-            this.selectionBox.userData.unit = this;
-            this.selectionBox.renderOrder = 1;
-            this.scene.add(this.selectionBox);
+            const selectionBox = new THREE.Mesh(boxGeometry, boxMaterial);
+            selectionBox.position.set(x, y, z);
+            selectionBox.userData.isSelectionBox = true;
+            selectionBox.userData.unit = this;
+            selectionBox.renderOrder = 1;
+            this.scene.add(selectionBox);
 
             if (this.mesh) {
                 this.hoverableObjects.push(this.mesh);
-                this.hoverableObjects.push(this.selectionBox);
+                this.hoverableObjects.push(selectionBox);
             }
+
+            this.loader.load('assets/mortar/bullet.glb', (bulletGltf) => {
+                this.bulletMesh = bulletGltf.scene.children[0]?.clone();
+                if (this.bulletMesh && this.bulletMesh.material && this.bulletMesh.material.map) {
+                    this.bulletTexture = this.bulletMesh.material.map;
+                }
+            });
         });
     }
 
@@ -157,13 +164,6 @@ export default class Unit {
             });
             this.scene.remove(this.mesh);
         }
-
-        if (this.selectionBox) {
-            this.selectionBox.geometry.dispose();
-            this.selectionBox.material.dispose();
-            this.scene.remove(this.selectionBox);
-        }
-
         this.loadModel(this.mesh.position.x, this.mesh.position.y, this.mesh.position.z);
     }
 
@@ -171,6 +171,44 @@ export default class Unit {
         return Object.values(enemies).filter(enemy =>
             this.mesh.position.distanceTo(enemy.enemy.position) <= this.range
         );
+    }
+
+    fireShot(target) {
+        if (!this.bulletMesh) {
+            console.error('Bullet mesh not loaded');
+            return;
+        }
+
+        if (!this.bullet) {
+            this.bullet = this.bulletMesh?.clone();
+            if (!this.bullet) {
+                console.error('Failed to clone bullet mesh');
+                return;
+            }
+            this.bullet.material = this.bullet.material?.clone();
+            if (this.bulletTexture) {
+                this.bullet.material.map = this.bulletTexture;
+            }
+            this.scene.add(this.bullet);
+        }
+
+        this.bullet.position.copy(this.mesh.position);
+
+        let bulletSpeed = 10;
+        const bulletAcceleration = 0.1;
+        const bulletDirection = new THREE.Vector3(0, 1, 0);
+
+        const bulletUpdate = () => {
+            this.bullet.position.add(bulletDirection.clone().multiplyScalar(bulletSpeed));
+            bulletSpeed += bulletAcceleration;
+            if (this.bullet.position.y > 100) {
+                this.bullet.position.copy(this.mesh.position);
+                bulletSpeed = 10;
+                return;
+            }
+            requestAnimationFrame(bulletUpdate);
+        };
+        bulletUpdate();
     }
 
     update(enemies, deltaTime) {
@@ -219,6 +257,10 @@ export default class Unit {
                         this.currentTarget = null;
                     }
                     this.lastAttackTime = 0;
+
+                    if (this.type === 'mortar') {
+                        this.fireShot(this.currentTarget);
+                    }
                 }
             }
         }
@@ -250,15 +292,19 @@ export default class Unit {
 
             const raycaster = new THREE.Raycaster();
             raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObject(scene.children.find(obj => obj.isMesh));
+            const intersectableObjects = scene.children.filter(obj => obj.isMesh);
 
-            if (intersects.length > 0) {
-                const position = intersects[0].point;
-                previewMesh.position.set(position.x, 0, position.z);
-                if (Unit.Colliding(position, scene, previewMesh)) {
-                    circleMesh.material.color.set('red');
-                } else {
-                    circleMesh.material.color.set('blue');
+            if (intersectableObjects.length > 0) {
+                const intersects = raycaster.intersectObjects(intersectableObjects);
+
+                if (intersects.length > 0) {
+                    const position = intersects[0].point;
+                    previewMesh.position.set(position.x, 0, position.z);
+                    if (Unit.Colliding(position, scene, previewMesh)) {
+                        circleMesh.material.color.set('red');
+                    } else {
+                        circleMesh.material.color.set('blue');
+                    }
                 }
             }
         }
