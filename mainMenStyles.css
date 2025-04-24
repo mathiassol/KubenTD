@@ -1,0 +1,177 @@
+* { box-sizing: border-box; }
+
+html, body {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: #000000;
+    padding: 0;
+    margin: 0;
+    font-family: "clasico", serif;
+    letter-spacing: 1px;
+    overflow: hidden;
+    user-select: none;
+}
+
+#menu-1 {
+    position: absolute;
+    font-weight: bolder;
+    font-size: 150%;
+    align-content: center;
+    text-align: center;
+    color: #a18c58;
+}
+#menu-2 {
+    position: absolute;
+    font-weight: bolder;
+    font-size: 150%;
+    align-content: center;
+    text-align: center;
+    color: #a18c58;
+}
+
+.flash {
+    top: 0;
+    height: 100%;
+    position: absolute;
+    inset: 0;
+    background: white;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.flash.active {
+    transition: opacity 3s ease-in;
+    opacity: 1;
+}
+
+#column {
+    padding-left: 1.5%;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    top: 50%;
+    flex-direction: column;
+}
+
+.btn {
+    font-size: 100%;
+    width: 50%;
+    height: 10%;
+    text-align: left;
+    padding: 10px 0;
+    display: block;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(50px);
+    user-select: none;
+}
+.line {
+    left: 0;
+    height: 1px;
+    width: 0;
+    background: #E88C5F;
+    transition: width 0.3s ease-out;
+}
+
+.btn:hover .line {
+    width: 40%;
+}
+
+
+.page {
+    display: block;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+.hidden {
+    display: none;
+}
+
+div {
+    width: 100%;
+    height: 300px;
+    position: relative;
+}
+
+canvas {
+    position:absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    -webkit-transform3d: translate(0,0,0);
+    -moz-transform3d: translate(0,0,0);
+    transform3d: translate(0,0,0);
+}
+
+ .tab-container {
+     text-align: center;
+     width: 80%;
+     margin: 20px auto;
+     color: #a18c58;
+ }
+
+.tab-header {
+    height: 50px;
+    display: flex;
+    border-bottom: 1px solid #a18c58;
+}
+
+.tab-btn {
+    height: 50px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    font-size: 18px;
+}
+
+.tab-btn:hover {
+    color: #E88C5F;
+}
+
+.tab-btn.active {
+    color: #E88C5F;
+    border-bottom: 3px solid #E88C5F;
+}
+
+.tab-content {
+    padding: 20px;
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+.setting-row {
+    height: 50px;
+    margin: 15px 0;
+    display: flex;
+    align-items: center;
+}
+
+.setting-row label {
+    margin-right: 10px;
+    color: #a18c58;
+    font-size: 16px;
+}
+
+.setting-row select {
+    background-color: #2a2a2a;
+    color: #a18c58;
+    border: 1px solid #a18c58;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    outline: none;
+}
+
+.setting-row select:hover {
+    background-color: #3a3a3a;
+}

@@ -3,8 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <link rel="stylesheet" href="mainMenStyles.css">
+    <style>
+    </style>
 </head>
 <body>
+<canvas id="buffer"></canvas>
+<canvas id="canvas"></canvas>
 
+
+<div class="page" id="menu-1">
+    <p id="text1">PRESS ANY BUTTON</p>
+</div>
+<div id="menu-2" class="page hidden">
+    <div id="column">
+        <div onclick="setMenu(3)" class="btn" id="play">
+            Play
+            <div class="line"></div>
+        </div>
+        <div onclick="openSettings()" class="btn" id="settings">
+            Settings
+            <div class="line"></div>
+        </div>
+        <div class="btn" id="credits">
+            Credits
+            <div class="line"></div>
+        </div>
+        <div onclick="quitApp()" class="btn" id="quit">
+            Quit
+            <div class="line"></div>
+        </div>
+    </div>
+</div>
+
+<div id="menu-3" class="page hidden">
+    <div class="tab-container">
+        <div class="tab-header">
+            <div class="tab-btn active" data-tab="tab1">General</div>
+            <div class="tab-btn" data-tab="tab2">Tab 2</div>
+            <div class="tab-btn" data-tab="tab3">Tab 3</div>
+        </div>
+        <div class="tab-content">
+            <div class="tab-panel active" id="tab1">
+                <h3>Video</h3>
+                <div class="setting-row">
+                    <label for="displayMode">Display Mode:</label>
+                    <select id="displayMode">
+                        <option value="window">Windowed</option>
+                        <option value="fullscreen">Fullscreen</option>
+                    </select>
+                </div>
+                <div class="setting-row">
+                    <label for="vsync">V-Sync:</label>
+                    <input type="checkbox" id="vsync">
+                </div>
+            </div>
+
+            <div class="tab-panel" id="tab2">
+                <h3>Tab 2 Content</h3>
+                <p>This is the content for the second tab.</p>
+            </div>
+            <div class="tab-panel" id="tab3">
+                <h3>Tab 3 Content</h3>
+                <p>This is the content for the third tab.</p>
+            </div>
+        </div>
+    </div>
+    <div onclick="backSettings()" class="btn" id="back" style="position: fixed; bottom: 20px; LEFT: 20px; color: #a18c58; width: 20% ">
+        Back
+        <div class="line"></div>
+    </div>
+    <div onclick="apply()" class="btn" id="apply" style="position: fixed; bottom: 15%; LEFT: 20px; color: #a18c58; width: 20%; height: 3% ">
+        apply
+        <div class="line"></div>
+    </div>
+</div>
+
+<script>
+    function backSettings() {
+        if (document.getElementById('settings-popup')) {
+            return;
+        }
+        if (currentMenu === 3 && settingsChanged) {
+            console.log("Settings changed, showing confirmation popup");
+            createConfirmationPopup();
+            return;
+        }
+    }
+</script>
+
+<script src="Scripts/mainMenuController.js"></script>
 </body>
 </html>

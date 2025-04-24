@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls';
 import { initRaycasting } from './raycasterUtils.js';
 import { buildWorld } from "./worldElements.js";
-import { Lensflare, LensflareElement } from 'three/addons/objects/Lensflare.js';
 import Enemy from './enemy.js';
 import Unit from './unit.js';
 import { unitConfig } from './unitConfig.js';
@@ -11,7 +10,7 @@ import { DamageText } from "./damageText.js";
 
 let isListenerAdded = false;
 
-console.log("Main.js script loaded");
+console.log("mainFrame.js script loaded");
 
 function init() {
     if (!isListenerAdded) {
@@ -411,11 +410,9 @@ function handleObjectClick(position, object) {
 
     console.log(`Clicked object at: x=${position.x}, y=${position.y}, z=${position.z}`);
 
-    // Check if the clicked object is a selection box
     if (object.userData.isSelectionBox) {
         const unit = object.userData.unit;
         if (unit) {
-            // Hide the range circle and menu of the previously selected unit
             if (selectedObject && selectedObject.userData.unit) {
                 const previousUnit = selectedObject.userData.unit;
                 if (previousUnit.rangeCircle) {
@@ -431,7 +428,6 @@ function handleObjectClick(position, object) {
         return;
     }
 
-    // Hide the health bar of the previously selected enemy
     if (selectedObject) {
         const previousEnemy = Object.values(enemies).find(enemy => enemy.enemy.uuid === selectedObject.uuid);
         if (previousEnemy) {
@@ -448,7 +444,6 @@ function handleObjectClick(position, object) {
 
     const clickedUnit = units.find(unit => unit.mesh.uuid === object.uuid);
     if (clickedUnit) {
-        // Hide the range circle and menu of the previously selected unit
         if (selectedObject && selectedObject.userData.unit) {
             const previousUnit = selectedObject.userData.unit;
             if (previousUnit.rangeCircle) {

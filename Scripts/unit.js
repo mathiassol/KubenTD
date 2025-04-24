@@ -1,6 +1,6 @@
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { unitConfig } from './unitConfig.js';
-import { cash, setCash } from './Main.js';
+import { cash, setCash } from './mainFrame.js';
 import { DamageText } from './damageText.js';
 import * as THREE from 'three';
 
