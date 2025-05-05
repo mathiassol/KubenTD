@@ -68,3 +68,40 @@ to damage invisible enemies you need a tower with the invisible trait. The same 
 - Settings sometimes don't save properly
 - Unit placement can be glitchy near edges
 - Performance issues with multiple units
+
+# Planning & Development Roadmap
+
+## Phase 1 - Core Systems (Completed)
+- [x] Basic 3D environment setup
+- [x] Camera system implementation
+- [x] Game loop foundation
+- [x] Enemy movement system
+- [x] Basic UI framework
+
+## Phase 2 - Game Mechanics (Completed)
+- [x] Tower placement system
+- [x] Enemy pathfinding
+- [x] Health and damage system
+- [x] Resource management
+- [x] Basic tower types
+- [x] Wave system
+- [x] Advanced targeting mechanics
+
+## Phase 3 - Advanced Features (current)
+- [ ] Special abilities for towers
+- [ ] Enemy boss mechanics
+- [ ] Level progression
+
+## Phase 4 - Polish & Balance
+- [ ] Visual effects
+- [ ] Sound effects and music
+- [ ] Game balance adjustments
+- [ ] Performance optimization
+- [ ] UI/UX improvements
+
+## Phase 5 - Additional Content
+- [ ] New tower types
+- [ ] New enemy types
+- [ ] Custom maps
+- [ ] Challenge modes
+- [ ] Leaderboards

@@ -16,12 +16,10 @@ function loadSettings() {
                 if (config.display.mode) {
                     displayMode = config.display.mode;
                 }
-
                 if (config.display.vsync !== undefined) {
                     config.display.vsync = config.display.vsync === 'true';
                 }
             }
-            
             return config;
         }
     } catch (error) {
