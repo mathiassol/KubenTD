@@ -69,7 +69,7 @@ to damage invisible enemies you need a tower with the invisible trait. The same 
 - Unit placement can be glitchy near edges
 - Performance issues with multiple units
 
-# Planning & Development Roadmap
+# Planning & Development
 
 ## Phase 1 - Core Systems (Completed)
 - [x] Basic 3D environment setup
@@ -105,3 +105,103 @@ to damage invisible enemies you need a tower with the invisible trait. The same 
 - [ ] Custom maps
 - [ ] Challenge modes
 - [ ] Leaderboards
+
+# Log
+
+## log 20 - Settings Menu Polish
+- Implemented confirmation dialog for unsaved settings
+- Fixed settings persistence issues
+- Added graphics quality controls
+
+## log 19 - Graphics Settings
+- Added shadow toggle and resolution settings
+- Implemented texture quality options
+- Added antialiasing controls
+
+## log 18 - Display Settings
+- Added V-sync implementation
+- Created fullscreen/windowed mode toggle
+- Fixed resolution scaling issues
+
+## log 17 - Settings Framework
+- Created settings menu structure
+- Added settings save/load functionality
+- Implemented settings categories
+
+## log 16 - UI Improvements
+- Enhanced health bar visibility
+- Fixed unit shop layout issues
+- Added tooltips for tower traits
+
+## log 15 - Tower Mechanics
+- Implemented tower targeting system
+- Added tower trait system
+- Fixed tower placement bugs
+
+## log 14 - Enemy Traits
+- Added enemy type system (ground/air)
+- Implemented invisibility mechanics
+- Added magic resistance system
+
+## log 13 - Core Game Systems
+- Enhanced game loop
+- Added cash management
+- Implemented wave system
+
+## log 12 - Tower Defense Logic
+- Basic tower placement
+- Added projectile system
+- Implemented damage calculations
+
+## log 11 - Enemy Movement
+- Created path system
+- Added enemy movement patterns
+- Implemented speed variations
+
+## log 10 - Game State Management
+- Added game state tracking
+- Implemented score system
+- Created wave management
+
+## log 9 - UI Framework
+- Added main menu system
+- Implemented HUD elements
+
+## log 8 - Camera Controls
+- Added orbit controls
+- Implemented zoom limitations
+- Fixed camera angle issues
+
+## log 7 - Three.js Setup
+- Basic 3D scene implementation
+- Added lighting system
+- Created basic geometry
+
+## log 6 - Project Structure
+- Set up NPM configuration
+- Organized file structure
+- Added build system
+
+## log 5 - Initial Planning
+- Created feature roadmap
+- Planned game mechanics
+- Designed tower types
+
+## log 4 - Game Design
+- Designed enemy types
+- Planned progression system
+- Created balance framework
+
+## log 3 - Asset Planning
+- Planned 3D models
+- Created color schemes
+
+## log 2 - Technical Design
+- Selected game technologies
+- Planned system architecture
+- Created initial documentation
+
+## log 1 - Project Setup
+- Repository initialization
+- Basic project structure
+- Development environment setup

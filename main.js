@@ -139,3 +139,42 @@ ipcMain.on('move-to-display', (event, displayIndex) => {
 ipcMain.on('quitApp', () => {
     app.quit();
 })
+
+ipcMain.handle('updateGameSettings', async (event, { mapId, difficulty }) => {
+    try {
+        const config = ini.parse(fs.readFileSync('./settings.ini', 'utf-8'));
+
+        if (!config.game) config.game = {};
+        config.game.map = mapId;
+        config.game.difficulty = difficulty;
+
+        fs.writeFileSync('./settings.ini', ini.stringify(config));
+        return true;
+    } catch (error) {
+        console.error('Error updating settings:', error);
+        return false;
+    }
+});
+
+ipcMain.handle('update-game-settings', async (event, { mapId, difficulty }) => {
+    try {
+        const settingsPath = path.join(__dirname, 'settings.ini');
+        const config = fs.existsSync(settingsPath)
+            ? ini.parse(fs.readFileSync(settingsPath, 'utf-8'))
+            : {};
+
+        // Ensure game section exists
+        config.game = config.game || {};
+
+        // Update settings
+        config.game.map = mapId;
+        config.game.difficulty = difficulty;
+
+        // Save settings
+        fs.writeFileSync(settingsPath, ini.stringify(config));
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating settings:', error);
+        return { success: false, error: error.message };
+    }
+});

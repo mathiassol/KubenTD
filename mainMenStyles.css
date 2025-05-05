@@ -175,3 +175,94 @@ canvas {
 .setting-row select:hover {
     background-color: #3a3a3a;
 }
+
+.map-container {
+    display: flex;
+    overflow-x: auto;
+    padding: 20px;
+    gap: 20px;
+    height: 95vh;
+}
+
+.map-item {
+    position: relative;
+    min-width: 400px;
+    height: 100%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.map-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: 2px solid #a18c58;
+}
+
+.map-overlay {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    align-items: center;
+    justify-content: center;
+}
+
+.difficulty-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.difficulty-btn {
+    padding: 15px 40px;
+    font-size: 18px;
+    background: transparent;
+    border: 2px solid #a18c58;
+    color: #a18c58;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 2;
+}
+
+.difficulty-btn:hover {
+    background: #a18c58;
+    color: #000;
+}
+
+.map-selected .map-overlay {
+    display: flex;
+}
+.map-title {
+    position: relative;
+    bottom: 95%;
+    left: 5%;
+    color: #a18c58;
+    font-size: clamp(16px, 3vw, 24px);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    z-index: 1;
+}
+.map-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.map-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.map-container::-webkit-scrollbar-thumb {
+    background: #a18c58;
+    border-radius: 4px;
+}
+
+.map-container::-webkit-scrollbar-thumb:hover {
+    background: #E88C5F;
+}
+
+.map-container {
+    scrollbar-width: thin;
+    scrollbar-color: #a18c58 transparent;
+}

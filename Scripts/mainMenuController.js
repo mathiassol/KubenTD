@@ -452,3 +452,16 @@ function saveSettings(settings) {
         console.error('Error saving settings:', error);
     }
 }
+
+
+
+async function startGame(mapId, difficulty) {
+    event.stopPropagation();
+
+    try {
+        await window.gameAPI.updateGameSettings(mapId, difficulty);
+        console.log(`Starting game with map: ${mapId}, difficulty: ${difficulty}`);
+    } catch (error) {
+        console.error('Error saving settings:', error);
+    }
+}

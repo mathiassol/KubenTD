@@ -17,7 +17,7 @@
 </div>
 <div id="menu-2" class="page hidden">
     <div id="column">
-        <div onclick="setMenu(3)" class="btn" id="play">
+        <div onclick="setMenu(4)" class="btn" id="play">
             Play
             <div class="line"></div>
         </div>
@@ -79,6 +79,33 @@
     </div>
 </div>
 
+<div id="menu-4" class="page hidden">
+    <div class="map-container">
+        <div class="map-item" onclick="selectMap(this, 'map1')">
+            <img src="maps/map1.jpg" alt="Map 1" class="map-image">
+            <div class="map-title">Desert Valley</div>
+            <div class="map-overlay">
+                <div class="difficulty-buttons">
+                    <button class="difficulty-btn" onclick="startGame('map1', 'easy')">Easy</button>
+                    <button class="difficulty-btn" onclick="startGame('map1', 'normal')">Normal</button>
+                    <button class="difficulty-btn" onclick="startGame('map1', 'hard')">Hard</button>
+                </div>
+            </div>
+        </div>
+        <div class="map-item" onclick="selectMap(this, 'map2')">
+            <img src="maps/map2.jpg" alt="Map 2" class="map-image">
+            <div class="map-title">Forest Path</div>
+            <div class="map-overlay">
+                <div class="difficulty-buttons">
+                    <button class="difficulty-btn" onclick="startGame('map2', 'easy')">Easy</button>
+                    <button class="difficulty-btn" onclick="startGame('map2', 'normal')">Normal</button>
+                    <button class="difficulty-btn" onclick="startGame('map2', 'hard')">Hard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     function backSettings() {
         if (document.getElementById('settings-popup')) {
@@ -90,6 +117,14 @@
             return;
         }
     }
+
+    function selectMap(element, mapId) {
+        document.querySelectorAll('.map-item').forEach(item => {
+            item.classList.remove('map-selected');
+        });
+        element.classList.add('map-selected');
+    }
+
 </script>
 
 <script src="Scripts/mainMenuController.js"></script>
