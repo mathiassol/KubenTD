@@ -1,6 +1,5 @@
 # Kuben TD
 
----
 # Game Description
 * list of different types of towers
 * each tower has traits
