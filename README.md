@@ -59,7 +59,6 @@ to damage invisible enemies you need a tower with the invisible trait. The same 
 - Basic game loop
 - Initial UI framework
 
----
 # Known Issues
 - Settings sometimes don't save properly
 - Unit placement can be glitchy near edges
