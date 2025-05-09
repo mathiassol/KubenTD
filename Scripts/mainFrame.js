@@ -6,10 +6,33 @@ import Enemy from './enemy.js';
 import Unit from './unit.js';
 import { unitConfig } from './unitConfig.js';
 import { DamageText } from "./damageText.js";
-const fs = require('fs');
-const ini = require('ini');
-const config = ini.parse(fs.readFileSync('./settings.ini', 'utf-8'));
 // Renderer
+
+async function getSettingsValue(section, key) {
+    try {
+        const response = await fetch('settings.ini');
+        const text = await response.text();
+        const lines = text.split('\n');
+
+        let currentSection = '';
+
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (trimmedLine.startsWith('[') && trimmedLine.endsWith(']')) {
+                currentSection = trimmedLine.slice(1, -1);
+            } else if (currentSection === section && trimmedLine.includes('=')) {
+                const [settingKey, value] = trimmedLine.split('=').map(s => s.trim());
+                if (settingKey === key) {
+                    return value;
+                }
+            }
+        }
+        return null;
+    } catch (error) {
+        console.error('Error reading settings:', error);
+        return null;
+    }
+}
 
 let isListenerAdded = false;
 
@@ -192,20 +215,38 @@ let enemies = {};
 let enemyInterval = null;
 
 // Wave index
-if (config.game.difficulty === "easy") {
-    const waveConfig = [
-    [
-        {speed: 5, health: 100, type: 'air', invisible: true, magic: true, steal: false},
-    ],
-        [
-            {speed: 10, health: 40, type: 'air'},
-        ],
-        [
-            {speed: 5, health: 1000, type: 'air'},
-        ],
+async function checkSettings() {
+    const displayMode = await getSettingsValue('game', 'difficulty');
+    if (displayMode === 'easy') {
+        const waveConfig = [
+            [
+                {speed: 5, health: 100, type: 'air', invisible: true, magic: true, steal: false},
+            ],
+            [
+                {speed: 10, health: 40, type: 'air'},
+            ],
+            [
+                {speed: 5, health: 1000, type: 'air'},
+            ],
 
-    ];
+        ];
+    } else {
+        const waveConfig = [
+            [
+                {speed: 5, health: 100, type: 'air', invisible: true, magic: true, steal: false},
+            ],
+            [
+                {speed: 10, health: 40, type: 'air'},
+            ],
+            [
+                {speed: 5, health: 1000, type: 'air'},
+            ],
+
+        ];
+    }
 }
+checkSettings();
+
 
 function spawnEnemy(path, delay, speed, health, type, invisible, magic, steal) {
     setTimeout(() => {
@@ -227,7 +268,7 @@ function spawnWave() {
     }
 
     for (let i = 0; i < waveData.length; i++) {
-        if (Object.keys(enemies).length < 100) { // Limit the number of enemies
+        if (Object.keys(enemies).length < 100) {
             const enemyData = waveData[i];
             spawnEnemy(path, i * spawnDelay, enemyData.speed, enemyData.health, enemyData.type, enemyData.invisible, enemyData.magic, enemyData.steal);
         }

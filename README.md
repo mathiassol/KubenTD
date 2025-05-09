@@ -82,19 +82,14 @@ to damage invisible enemies you need a tower with the invisible trait. The same 
 - [x] Wave system
 - [x] Advanced targeting mechanics
 
-## Phase 3 - Advanced Features (current)
-- [ ] Special abilities for towers
-- [ ] Enemy boss mechanics
-- [ ] Level progression
-
-## Phase 4 - Polish & Balance
+## Phase 3 - Polish & Balance (current)
 - [ ] Visual effects
 - [ ] Sound effects and music
 - [ ] Game balance adjustments
 - [ ] Performance optimization
 - [ ] UI/UX improvements
 
-## Phase 5 - Additional Content
+## Phase 4 - Additional Content
 - [ ] New tower types
 - [ ] New enemy types
 - [ ] Custom maps
