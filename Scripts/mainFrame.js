@@ -6,6 +6,9 @@ import Enemy from './enemy.js';
 import Unit from './unit.js';
 import { unitConfig } from './unitConfig.js';
 import { DamageText } from "./damageText.js";
+const fs = require('fs');
+const ini = require('ini');
+const config = ini.parse(fs.readFileSync('./settings.ini', 'utf-8'));
 // Renderer
 
 let isListenerAdded = false;
@@ -189,17 +192,20 @@ let enemies = {};
 let enemyInterval = null;
 
 // Wave index
-const waveConfig = [
+if (config.game.difficulty === "easy") {
+    const waveConfig = [
     [
-        { speed: 5, health: 100, type: 'air', invisible: true, magic: true, steal: false },
+        {speed: 5, health: 100, type: 'air', invisible: true, magic: true, steal: false},
     ],
-    [
-        { speed: 10, health: 40, type: 'air' },
-    ],
-    [
-        { speed: 5, health: 1000, type: 'air' },
-    ],
-];
+        [
+            {speed: 10, health: 40, type: 'air'},
+        ],
+        [
+            {speed: 5, health: 1000, type: 'air'},
+        ],
+
+    ];
+}
 
 function spawnEnemy(path, delay, speed, health, type, invisible, magic, steal) {
     setTimeout(() => {

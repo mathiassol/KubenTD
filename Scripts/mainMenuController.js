@@ -461,6 +461,8 @@ async function startGame(mapId, difficulty) {
     try {
         await window.gameAPI.updateGameSettings(mapId, difficulty);
         console.log(`Starting game with map: ${mapId}, difficulty: ${difficulty}`);
+        window.location.href = 'index.html';
+
     } catch (error) {
         console.error('Error saving settings:', error);
     }
