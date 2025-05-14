@@ -65,9 +65,14 @@ function createWindow () {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false,
+            vsync: false
         },
         frame: true,
     })
+    if (process.platform === 'win32') {
+        app.commandLine.appendSwitch('disable-frame-rate-limit');
+        app.commandLine.appendSwitch('disable-gpu-vsync');
+    }
 
     Menu.setApplicationMenu(null)
     win.loadFile('mainMenu.html')

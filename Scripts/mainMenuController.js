@@ -4,6 +4,8 @@ let originalSettings = {};
 document.addEventListener('DOMContentLoaded', async function() {
     const displayModeSelect = document.getElementById('displayMode');
     const vsyncCheckbox = document.getElementById('vsync');
+    const showFPSCheckbox = document.getElementById('showFPS');
+    const fpsLimitInput = document.getElementById('fpsLimit');
 
     if (window.electron) {
         try {
@@ -21,6 +23,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (settings.vsync !== undefined) {
                 vsyncCheckbox.checked = settings.vsync;
             }
+
+            if (settings.showFPS !== undefined) {
+                showFPSCheckbox.checked = settings.showFPS;
+            }
+
+            if (settings.FPScap !== undefined) {
+                fpsLimitInput.value = settings.FPScap;
+            }
         } catch (error) {
             console.error('Failed to load settings:', error);
         }
@@ -31,6 +41,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     vsyncCheckbox.addEventListener('change', function() {
+        settingsChanged = true;
+    });
+
+    showFPSCheckbox.addEventListener('change', function() {
+        settingsChanged = true;
+    });
+    fpsLimitInput.addEventListener('change', function() {
         settingsChanged = true;
     });
 });
@@ -44,6 +61,8 @@ document.addEventListener('keydown', function keydownHandler() {
 function apply() {
     const displayMode = document.getElementById('displayMode').value;
     const vsync = document.getElementById('vsync').checked;
+    const showFPS = document.getElementById('showFPS').checked;
+    const FPScap = parseInt(document.getElementById('fpsLimit').value);
 
     if (window.electron) {
         window.electron.changeDisplayMode(displayMode);
@@ -52,7 +71,9 @@ function apply() {
         const settings = {
             display: {
                 mode: displayMode,
-                vsync: vsync
+                vsync: vsync,
+                showFPS: showFPS,
+                FPScap: FPScap
             }
         };
         
@@ -61,7 +82,9 @@ function apply() {
 
         originalSettings = {
             displayMode: displayMode,
-            vsync: vsync
+            vsync: vsync,
+            showFPS: showFPS,
+            FPScap: FPScap
         };
         settingsChanged = false;
     } else {
@@ -434,7 +457,10 @@ function saveSettings(settings) {
         config.display = config.display || {};
         config.display.mode = displayMode;
         config.display.vsync = vsync;
-        
+        config.display.showFPS = showFPS;
+        config.display.fpsLimit = FPScap;
+
+
         // New Three.js settings
         config.graphics = config.graphics || {};
         config.graphics.shadowsEnabled = shadowsEnabled;

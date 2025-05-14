@@ -32,11 +32,17 @@ init()
 const canvas = document.querySelector('#three-canvas');
 const renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: true
+    antialias: false,
+    powerPreference: 'high-performance',
+    context: canvas.getContext('webgl', {
+        powerPreference: 'high-performance',
+        desynchronized: true  // Add this
+    })
+
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio > 1 ? 2 : 1);
-
+renderer.setPixelRatio(1);
 // Scene
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('white');
@@ -84,6 +90,17 @@ scene.add(boxMesh);
 const boxMesh2 = new THREE.Mesh(geometry, material);
 boxMesh2.position.z = -10;
 scene.add(boxMesh2);
+
+function cleanupScene() {
+    for (const id in enemies) {
+        if (!enemies[id].enemy.visible || enemies[id].health <= 0) {
+            scene.remove(enemies[id].enemy);
+            enemies[id].enemy.geometry.dispose();
+            enemies[id].enemy.material.dispose();
+            delete enemies[id];
+        }
+    }
+}
 
 let playerHealth = 100;
 const healthBar = document.getElementById('health-bar');
@@ -246,12 +263,12 @@ async function getSettingsValue(section, key) {
 
 let waveConfig = easyWaveConfig;
 
-getSettingsValue('game', 'difficulty').then(displayMode => {
-    if (displayMode === 'easy') {
+getSettingsValue('game', 'difficulty').then(difficulty => {
+    if (difficulty === 'easy') {
         waveConfig = easyWaveConfig;
-    }if (displayMode === 'normal') {
+    }if (difficulty === 'normal') {
         waveConfig = normalWaveConfig;
-    }if (displayMode === 'hard') {
+    }if (difficulty === 'hard') {
         waveConfig = hardWaveConfig;
     }
 });
@@ -575,9 +592,9 @@ initRaycasting(scene, camera, floorMesh, hoverableObjects, handleObjectClick);
 
 const speedFactor = 1;
 let frameCount = 0;
-const targetFPS = 180;
-const frameDuration = 1000 / targetFPS;
-let lastFrameTime = 0;
+let lastFPSUpdate = performance.now();
+let lastFrame = performance.now();
+let currentFPS = 0;
 
 setInterval(checkMemoryUsage, 1000);
 
@@ -585,34 +602,44 @@ const spatialGrid = new SpatialGrid(20);
 
 function draw() {
     const currentTime = performance.now();
-    const deltaTime = currentTime - lastFrameTime;
+    const deltaTime = (currentTime - lastFrame) * 0.001;
+    lastFrame = currentTime;
 
-    if (deltaTime >= frameDuration) {
-        frameCount++;
-        const adjustedDeltaTime = clock.getDelta() * speedFactor;
-
-        for (let id in enemies) {
-            enemies[id].update(adjustedDeltaTime, onEnemyReachedEnd, camera);
-            spatialGrid.update(enemies[id].enemy);
-        }
-
-        updateCamera(scene);
-
-        for (let unit of units) {
-            const nearbyEnemies = spatialGrid.getNearby(unit.mesh.position, unit.range);
-            unit.update(nearbyEnemies, adjustedDeltaTime);
-        }
-        updateCashDisplay();
-
-        renderer.render(scene, camera);
-        lastFrameTime = currentTime;
-        DamageText.updateAll();
+    frameCount++;
+    if (currentTime - lastFPSUpdate >= 1000) {
+        currentFPS = frameCount;
+        document.getElementById('fps').textContent = `FPS: ${currentFPS}`;
+        frameCount = 0;
+        lastFPSUpdate = currentTime;
     }
 
-    requestAnimationFrame(draw);
-}
+    // Game updates using deltaTime
+    const scaledDelta = deltaTime * speedFactor;
 
-renderer.setAnimationLoop(draw);
+    // Update enemies
+    for (let id in enemies) {
+        enemies[id].update(scaledDelta, onEnemyReachedEnd, camera);
+        spatialGrid.update(enemies[id].enemy);
+    }
+
+    // Update units
+    units.forEach(unit => {
+        if (unit.mesh.visible) {
+            const nearbyEnemies = spatialGrid.getNearby(unit.mesh.position, unit.range);
+            unit.update(nearbyEnemies, scaledDelta);
+        }
+    });
+
+    updateCamera(scene);
+    cleanupScene();
+    renderer.render(scene, camera);
+    DamageText.updateAll();
+}
+function animate() {
+    requestAnimationFrame(animate);
+    draw();
+}
+animate();
 
 function logMemoryUsage() {
     console.log(renderer.info.memory);
