@@ -173,48 +173,11 @@ export default class Unit {
         );
     }
 
-    fireShot(target) {
-        if (!this.bulletMesh) {
-            console.error('Bullet mesh not loaded');
-            return;
-        }
-
-        if (!this.bullet) {
-            this.bullet = this.bulletMesh?.clone();
-            if (!this.bullet) {
-                console.error('Failed to clone bullet mesh');
-                return;
-            }
-            this.bullet.material = this.bullet.material?.clone();
-            if (this.bulletTexture) {
-                this.bullet.material.map = this.bulletTexture;
-            }
-            this.scene.add(this.bullet);
-        }
-
-        this.bullet.position.copy(this.mesh.position);
-
-        let bulletSpeed = 10;
-        const bulletAcceleration = 0.1;
-        const bulletDirection = new THREE.Vector3(0, 1, 0);
-
-        const bulletUpdate = () => {
-            this.bullet.position.add(bulletDirection.clone().multiplyScalar(bulletSpeed));
-            bulletSpeed += bulletAcceleration;
-            if (this.bullet.position.y > 100) {
-                this.bullet.position.copy(this.mesh.position);
-                bulletSpeed = 10;
-                return;
-            }
-            requestAnimationFrame(bulletUpdate);
-        };
-        bulletUpdate();
-    }
-
     update(enemies, deltaTime) {
         this.lastAttackTime += deltaTime;
 
         let targets = this.findEnemiesInRange(enemies);
+
         if (targets.length > 0) {
             targets.sort((a, b) => a.distanceToEnd - b.distanceToEnd);
             this.invisible = unitConfig[this.type].invisible;
@@ -246,7 +209,7 @@ export default class Unit {
                     if (this.magic === false && this.currentTarget.magic === true) {
                         damageDealt *= 0.7;
                     }
-                    this.currentTarget.health -= damageDealt;
+                    this.currentTarget.takeDamage(damageDealt);
 
                     const damageText = new DamageText(this.scene, damageDealt.toString(), this.currentTarget.enemy);
                     this.damageTexts.push(damageText);
@@ -257,15 +220,23 @@ export default class Unit {
                         this.currentTarget = null;
                     }
                     this.lastAttackTime = 0;
-
-                    if (this.type === 'mortar') {
-                        this.fireShot(this.currentTarget);
-                    }
                 }
             }
         }
 
-        this.damageTexts = this.damageTexts.filter(damageText => damageText.update());
+
+        this.damageTexts = this.damageTexts.filter(damageText => {
+            const isActive = damageText.update();
+            if (!isActive) {
+                // Properly dispose geometry and materials
+                if (damageText.mesh) {
+                    if (damageText.mesh.geometry) damageText.mesh.geometry.dispose();
+                    if (damageText.mesh.material) damageText.mesh.material.dispose();
+                    this.scene.remove(damageText.mesh);
+                }
+            }
+            return isActive;
+        });
     }
 
     static startPlacementMode(scene, camera, type, onPlace) {

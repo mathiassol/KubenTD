@@ -1,36 +1,19 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls';
-import { initRaycasting } from './raycasterUtils.js';
-import { buildWorld } from "./worldElements.js";
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {initRaycasting} from './raycasterUtils.js';
+import {buildWorld} from "./worldElements.js";
 import Enemy from './enemy.js';
 import Unit from './unit.js';
-import { unitConfig } from './unitConfig.js';
-import { DamageText } from "./damageText.js";
+import {unitConfig} from './unitConfig.js';
+import {easyWaveConfig, normalWaveConfig, hardWaveConfig} from "./enemyConfig.js";
+import {DamageText} from "./damageText.js";
+import SpatialGrid from './spatialGrid.js';
+
 // Renderer
 
-async function getSettingsValue(section, key) {
-    try {
-        const response = await fetch('settings.ini');
-        const text = await response.text();
-        const lines = text.split('\n');
-
-        let currentSection = '';
-
-        for (const line of lines) {
-            const trimmedLine = line.trim();
-            if (trimmedLine.startsWith('[') && trimmedLine.endsWith(']')) {
-                currentSection = trimmedLine.slice(1, -1);
-            } else if (currentSection === section && trimmedLine.includes('=')) {
-                const [settingKey, value] = trimmedLine.split('=').map(s => s.trim());
-                if (settingKey === key) {
-                    return value;
-                }
-            }
-        }
-        return null;
-    } catch (error) {
-        console.error('Error reading settings:', error);
-        return null;
+function checkMemoryUsage() {
+    if (window.performance && window.performance.memory) {
+        console.log('Memory usage:', Math.round(window.performance.memory.usedJSHeapSize / 1048576), 'MB');
     }
 }
 
@@ -57,7 +40,7 @@ renderer.setPixelRatio(window.devicePixelRatio > 1 ? 2 : 1);
 // Scene
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('white');
-scene.fog = new THREE.Fog( scene.background, 3500, 15000 );
+scene.fog = new THREE.Fog(scene.background, 3500, 15000);
 // Camera
 const camera = new THREE.PerspectiveCamera(
     75,
@@ -86,12 +69,14 @@ const floorMesh = new THREE.Mesh(
         side: THREE.DoubleSide
     })
 );
-floorMesh.rotation.x = -Math.PI/2;
+floorMesh.rotation.x = -Math.PI / 2;
 floorMesh.position.y = -5;
 scene.add(floorMesh);
 
 const geometry = new THREE.BoxGeometry(10, 10, 10);
-const material = new THREE.MeshLambertMaterial({ color: 'blue' });
+const material = new THREE.MeshLambertMaterial({
+    color: 'blue'
+});
 const boxMesh = new THREE.Mesh(geometry, material);
 boxMesh.position.z = 10;
 scene.add(boxMesh);
@@ -105,8 +90,7 @@ const healthBar = document.getElementById('health-bar');
 
 function updateHealthBar() {
     healthBar.style.width = `${playerHealth}%`;
-    if (playerHealth <= 0) {
-    }
+    if (playerHealth <= 0) {}
 }
 const units = [];
 
@@ -167,6 +151,7 @@ function createUnit(x, y, z, type) {
         shakeCanvas();
     }
 }
+
 function shakeCanvas() {
     const canvas = document.querySelector('#three-canvas');
     canvas.classList.add('shake');
@@ -174,6 +159,7 @@ function shakeCanvas() {
         canvas.classList.remove('shake');
     }, 500);
 }
+
 function showNotification(message) {
     const notificationContainer = document.getElementById('notification-container');
     const notification = document.createElement('div');
@@ -186,18 +172,34 @@ function showNotification(message) {
     }, 3000);
 }
 let cash = 200000;
+let lastCashUpdate = 0;
+let lastCashValue = cash;
+const CASH_UPDATE_INTERVAL = 100;
 
 export function updateCashDisplay() {
-    const cashBalanceElement = document.getElementById('cash-balance');
-    cashBalanceElement.innerText = `Cash: ${cash}`;
+    const currentTime = performance.now();
+
+    // Only update if cash changed and enough time has passed
+    if (cash !== lastCashValue && currentTime - lastCashUpdate > CASH_UPDATE_INTERVAL) {
+        const cashBalanceElement = document.getElementById('cash-balance');
+        cashBalanceElement.innerText = `Cash: ${cash}`;
+        lastCashUpdate = currentTime;
+        lastCashValue = cash;
+    }
 }
 
 export function setCash(newCash) {
     cash = newCash;
-    updateCashDisplay();
+    // Force immediate update when setCash is called directly
+    const cashBalanceElement = document.getElementById('cash-balance');
+    cashBalanceElement.innerText = `Cash: ${cash}`;
+    lastCashValue = cash;
+    lastCashUpdate = performance.now();
 }
 
-export { cash };
+export {
+    cash
+};
 
 
 // Draw
@@ -215,42 +217,48 @@ let enemies = {};
 let enemyInterval = null;
 
 // Wave index
-async function checkSettings() {
-    const displayMode = await getSettingsValue('game', 'difficulty');
-    if (displayMode === 'easy') {
-        const waveConfig = [
-            [
-                {speed: 5, health: 100, type: 'air', invisible: true, magic: true, steal: false},
-            ],
-            [
-                {speed: 10, health: 40, type: 'air'},
-            ],
-            [
-                {speed: 5, health: 1000, type: 'air'},
-            ],
 
-        ];
-    } else {
-        const waveConfig = [
-            [
-                {speed: 5, health: 100, type: 'air', invisible: true, magic: true, steal: false},
-            ],
-            [
-                {speed: 10, health: 40, type: 'air'},
-            ],
-            [
-                {speed: 5, health: 1000, type: 'air'},
-            ],
+async function getSettingsValue(section, key) {
+    try {
+        const response = await fetch('settings.ini');
+        const text = await response.text();
+        const lines = text.split('\n');
 
-        ];
+        let currentSection = '';
+
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (trimmedLine.startsWith('[') && trimmedLine.endsWith(']')) {
+                currentSection = trimmedLine.slice(1, -1);
+            } else if (currentSection === section && trimmedLine.includes('=')) {
+                const [settingKey, value] = trimmedLine.split('=').map(s => s.trim());
+                if (settingKey === key) {
+                    return value;
+                }
+            }
+        }
+        return null;
+    } catch (error) {
+        console.error('Error reading settings:', error);
+        return null;
     }
 }
-checkSettings();
 
+let waveConfig = easyWaveConfig;
 
-function spawnEnemy(path, delay, speed, health, type, invisible, magic, steal) {
+getSettingsValue('game', 'difficulty').then(displayMode => {
+    if (displayMode === 'easy') {
+        waveConfig = easyWaveConfig;
+    }if (displayMode === 'normal') {
+        waveConfig = normalWaveConfig;
+    }if (displayMode === 'hard') {
+        waveConfig = hardWaveConfig;
+    }
+});
+
+function spawnEnemy(path, delay, speed, health, type, invisible, magic, steal, cash) {
     setTimeout(() => {
-        const enemy = new Enemy(scene, path, speed, health, type, invisible, magic, steal);
+        const enemy = new Enemy(scene, path, speed, health, type, invisible, magic, steal, cash);
         enemies[enemy.id] = enemy;
 
         hoverableObjects.push(enemy.enemy);
@@ -270,7 +278,7 @@ function spawnWave() {
     for (let i = 0; i < waveData.length; i++) {
         if (Object.keys(enemies).length < 100) {
             const enemyData = waveData[i];
-            spawnEnemy(path, i * spawnDelay, enemyData.speed, enemyData.health, enemyData.type, enemyData.invisible, enemyData.magic, enemyData.steal);
+            spawnEnemy(path, i * spawnDelay, enemyData.speed, enemyData.health, enemyData.type, enemyData.invisible, enemyData.magic, enemyData.steal, enemyData.cash);
         }
     }
     waveCount++;
@@ -327,9 +335,15 @@ function onEnemyReachedEnd(enemy) {
     delete enemies[enemy.id];
 
 }
+
 function createRangeCircle(unit) {
     const geometry = new THREE.CircleGeometry(unit.range, 64);
-    const material = new THREE.MeshBasicMaterial({ color: 0x3A96FF, side: THREE.DoubleSide, opacity: 0.5, transparent: true });
+    const material = new THREE.MeshBasicMaterial({
+        color: 0x3A96FF,
+        side: THREE.DoubleSide,
+        opacity: 0.5,
+        transparent: true
+    });
     const circle = new THREE.Mesh(geometry, material);
     circle.rotation.x = -Math.PI / 2;
     circle.position.copy(unit.mesh.position);
@@ -509,22 +523,43 @@ function handleObjectClick(position, object) {
     }
 }
 
+let cameraNeedsUpdate = false;
+let lastCameraPosition = new THREE.Vector3();
+let lastControlsTarget = new THREE.Vector3();
+
 function updateCamera(scene) {
+    if (!selectedUUID && !cameraNeedsUpdate) {
+        return;
+    }
+
     if (selectedUUID) {
         const object = scene.getObjectByProperty('uuid', selectedUUID);
-
         if (object) {
-
             const targetPosition = object.position.clone();
             targetPosition.y += 5;
 
-            controls.target.lerp(targetPosition, 0.1);
-            controls.update();
-        } else {
-            console.warn("No object found with the stored UUID.");
+            if (controls.target.distanceTo(targetPosition) > 0.01) {
+                controls.target.lerp(targetPosition, 0.1);
+                cameraNeedsUpdate = true;
+            }
         }
     }
+
+    if (!camera.position.equals(lastCameraPosition) || !controls.target.equals(lastControlsTarget)) {
+        controls.update();
+        lastCameraPosition.copy(camera.position);
+        lastControlsTarget.copy(controls.target);
+        cameraNeedsUpdate = false;
+    }
 }
+
+controls.addEventListener('start', () => {
+    cameraNeedsUpdate = true;
+});
+
+controls.addEventListener('end', () => {
+    cameraNeedsUpdate = false;
+});
 
 for (let id in enemies) {
     hoverableObjects.push(enemies[id].enemy);
@@ -544,6 +579,10 @@ const targetFPS = 180;
 const frameDuration = 1000 / targetFPS;
 let lastFrameTime = 0;
 
+setInterval(checkMemoryUsage, 1000);
+
+const spatialGrid = new SpatialGrid(20);
+
 function draw() {
     const currentTime = performance.now();
     const deltaTime = currentTime - lastFrameTime;
@@ -554,12 +593,14 @@ function draw() {
 
         for (let id in enemies) {
             enemies[id].update(adjustedDeltaTime, onEnemyReachedEnd, camera);
+            spatialGrid.update(enemies[id].enemy);
         }
 
         updateCamera(scene);
 
         for (let unit of units) {
-            unit.update(enemies, adjustedDeltaTime);
+            const nearbyEnemies = spatialGrid.getNearby(unit.mesh.position, unit.range);
+            unit.update(nearbyEnemies, adjustedDeltaTime);
         }
         updateCashDisplay();
 

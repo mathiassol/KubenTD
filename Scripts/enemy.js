@@ -1,4 +1,9 @@
 import * as THREE from 'three';
+import {
+    cash,
+    setCash
+} from './mainFrame.js';
+
 
 let enemyCounter = 0;
 let lastTime = performance.now();
@@ -10,7 +15,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 export default class Enemy {
-    constructor(scene, path, speed, enemyHealth, type, invisible = false, magic = false, steal = false) {
+    constructor(scene, path, speed, enemyHealth, type, invisible = false, magic = false, steal = false, cash = 50) {
         this.scene = scene;
         this.path = path;
         this.speed = speed;
@@ -20,12 +25,15 @@ export default class Enemy {
         this.invisible = invisible;
         this.magic = magic;
         this.steal = steal;
+        this.cash = cash;
         this.currentWaypointIndex = 0;
         this.isMoving = true;
 
         this.id = `enemy_${enemyCounter++}`;
         this.enemyGeometry = new THREE.SphereGeometry(2, 16, 16);
-        this.enemyMaterial = new THREE.MeshLambertMaterial({ color: 'red' });
+        this.enemyMaterial = new THREE.MeshLambertMaterial({
+            color: 'red'
+        });
         this.enemy = new THREE.Mesh(this.enemyGeometry, this.enemyMaterial);
 
         if (this.type === 'air') {
@@ -34,7 +42,10 @@ export default class Enemy {
         this.scene.add(this.enemy);
 
         const healthBarGeometry = new THREE.PlaneGeometry(5, 0.5);
-        const healthBarMaterial = new THREE.MeshBasicMaterial({ color: '#00db08', side: THREE.DoubleSide });
+        const healthBarMaterial = new THREE.MeshBasicMaterial({
+            color: '#00db08',
+            side: THREE.DoubleSide
+        });
         this.healthBar = new THREE.Mesh(healthBarGeometry, healthBarMaterial);
         this.healthBar.position.set(0, 3, 0);
         this.healthBar.visible = false;
@@ -87,6 +98,20 @@ export default class Enemy {
         this.health -= amount;
         if (this.health < 0) this.health = 0;
         this.updateHealthBar();
+
+        if (this.health <= 0) {
+            this.die();
+        }
+    }
+
+    die() {
+        setCash(cash + this.cash);
+
+        this.scene.remove(this.enemy);
+        if (this.enemy.geometry) this.enemy.geometry.dispose();
+        if (this.enemy.material) this.enemy.material.dispose();
+
+        this.isMoving = false;
     }
 
     updateHealthBar() {
