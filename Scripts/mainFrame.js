@@ -7,15 +7,9 @@ import Unit from './unit.js';
 import {unitConfig} from './unitConfig.js';
 import {easyWaveConfig, normalWaveConfig, hardWaveConfig} from "./enemyConfig.js";
 import {DamageText} from "./damageText.js";
-import SpatialGrid from './spatialGrid.js';
 
+let cash = 20000;
 // Renderer
-
-function checkMemoryUsage() {
-    if (window.performance && window.performance.memory) {
-        console.log('Memory usage:', Math.round(window.performance.memory.usedJSHeapSize / 1048576), 'MB');
-    }
-}
 
 let isListenerAdded = false;
 
@@ -34,11 +28,10 @@ const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: false,
     powerPreference: 'high-performance',
-    context: canvas.getContext('webgl', {
+    context: canvas.getContext('webgl2', {
         powerPreference: 'high-performance',
-        desynchronized: true  // Add this
+        desynchronized: true
     })
-
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio > 1 ? 2 : 1);
@@ -188,7 +181,6 @@ function showNotification(message) {
         notification.remove();
     }, 3000);
 }
-let cash = 200000;
 let lastCashUpdate = 0;
 let lastCashValue = cash;
 const CASH_UPDATE_INTERVAL = 100;
@@ -207,7 +199,6 @@ export function updateCashDisplay() {
 
 export function setCash(newCash) {
     cash = newCash;
-    // Force immediate update when setCash is called directly
     const cashBalanceElement = document.getElementById('cash-balance');
     cashBalanceElement.innerText = `Cash: ${cash}`;
     lastCashValue = cash;
@@ -273,20 +264,17 @@ getSettingsValue('game', 'difficulty').then(difficulty => {
     }
 });
 
+
 function spawnEnemy(path, delay, speed, health, type, invisible, magic, steal, cash) {
     setTimeout(() => {
         const enemy = new Enemy(scene, path, speed, health, type, invisible, magic, steal, cash);
-        enemies[enemy.id] = enemy;
-
-        hoverableObjects.push(enemy.enemy);
+        enemies[enemy.id] = enemy; // Adds the enemy to the `enemies` object
+        hoverableObjects.push(enemy.enemy); // Adds the enemy's mesh to hoverable objects
     }, delay);
 }
 
 function spawnWave() {
     const waveData = waveConfig[waveCount];
-
-    const spawnDelay = 1000;
-
     if (!waveData) {
         console.log("No more waves to spawn!");
         return;
@@ -295,7 +283,7 @@ function spawnWave() {
     for (let i = 0; i < waveData.length; i++) {
         if (Object.keys(enemies).length < 100) {
             const enemyData = waveData[i];
-            spawnEnemy(path, i * spawnDelay, enemyData.speed, enemyData.health, enemyData.type, enemyData.invisible, enemyData.magic, enemyData.steal, enemyData.cash);
+            spawnEnemy(path, i * 1000, enemyData.speed, enemyData.health, enemyData.type, enemyData.invisible, enemyData.magic, enemyData.steal, enemyData.cash);
         }
     }
     waveCount++;
@@ -381,12 +369,12 @@ function showUnitMenu(unit) {
                 <div class="path-level">Level ${unit.pathLevels[path]}</div>
                 <div class="path-upgrade">
                     ${unitConfig[unit.type][path][unit.pathLevels[path]] ? `
-                        <div>Next Upgrade:</div>
-                        <div>Damage: ${unitConfig[unit.type][path][unit.pathLevels[path]].damage.toFixed(1)}</div>
-                        <div>Range: ${unitConfig[unit.type][path][unit.pathLevels[path]].range.toFixed(1)}</div>
-                        <div>Attack Speed: ${unitConfig[unit.type][path][unit.pathLevels[path]].attackSpeed.toFixed(1)}</div>
+                        <div id="text1">Next Upgrade:</div>
+                        <div id="text1">Damage: ${unitConfig[unit.type][path][unit.pathLevels[path]].damage.toFixed(1)}</div>
+                        <div id="text1">Range: ${unitConfig[unit.type][path][unit.pathLevels[path]].range.toFixed(1)}</div>
+                        <div id="text1">Attack Speed: ${unitConfig[unit.type][path][unit.pathLevels[path]].attackSpeed.toFixed(1)}</div>
                         <button class="path-button" data-path="${path}" ${!unit.canUpgradePath(path) ? 'disabled' : ''}>Upgrade Path ${path.slice(-1)}</button>
-                    ` : '<div>Max Level Reached</div>'}
+                    ` : '<div id="text1">Max Level Reached</div>'}
                 </div>
             </div>
         `).join('')}
@@ -596,10 +584,6 @@ let lastFPSUpdate = performance.now();
 let lastFrame = performance.now();
 let currentFPS = 0;
 
-setInterval(checkMemoryUsage, 1000);
-
-const spatialGrid = new SpatialGrid(20);
-
 function draw() {
     const currentTime = performance.now();
     const deltaTime = (currentTime - lastFrame) * 0.001;
@@ -613,20 +597,21 @@ function draw() {
         lastFPSUpdate = currentTime;
     }
 
-    // Game updates using deltaTime
     const scaledDelta = deltaTime * speedFactor;
 
     // Update enemies
     for (let id in enemies) {
         enemies[id].update(scaledDelta, onEnemyReachedEnd, camera);
-        spatialGrid.update(enemies[id].enemy);
     }
 
     // Update units
     units.forEach(unit => {
         if (unit.mesh.visible) {
-            const nearbyEnemies = spatialGrid.getNearby(unit.mesh.position, unit.range);
-            unit.update(nearbyEnemies, scaledDelta);
+            const nearbyEnemies = Object.values(enemies).filter(enemy => {
+                const distance = unit.mesh.position.distanceTo(enemy.enemy.position);
+                return distance <= unit.range;
+            });
+            unit.update(nearbyEnemies, deltaTime);
         }
     });
 
@@ -635,6 +620,7 @@ function draw() {
     renderer.render(scene, camera);
     DamageText.updateAll();
 }
+
 function animate() {
     requestAnimationFrame(animate);
     draw();

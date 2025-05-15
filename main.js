@@ -35,8 +35,7 @@ function saveSettings(settings) {
 
         config.display = config.display || {};
         config.display.mode = displayMode;
-        
-        // Add this line to save vsync if you have it
+
         if (settings && settings.display && settings.display.vsync !== undefined) {
             config.display.vsync = settings.display.vsync;
         }
@@ -48,7 +47,6 @@ function saveSettings(settings) {
 }
 
 function createWindow () {
-    const settings = loadSettings()
     
     const { width, height } = screen.getPrimaryDisplay().workAreaSize
 
@@ -64,15 +62,9 @@ function createWindow () {
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
-            nodeIntegration: false,
-            vsync: false
         },
         frame: true,
     })
-    if (process.platform === 'win32') {
-        app.commandLine.appendSwitch('disable-frame-rate-limit');
-        app.commandLine.appendSwitch('disable-gpu-vsync');
-    }
 
     Menu.setApplicationMenu(null)
     win.loadFile('mainMenu.html')

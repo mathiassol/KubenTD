@@ -79,20 +79,6 @@ html, body {
     background-color: blue;
 }
 
-#side-menu {
-    display: none;
-    position: fixed;
-    right: 0;
-    top: 0;
-    width: 20vw;
-    height: 100%;
-    background: #f0f0f0;
-    padding: 1vh;
-    box-shadow: -0.2vh 0 0.5vh rgba(0,0,0,0.5);
-    overflow-y: auto;
-    font-family: 'Arial', sans-serif;
-}
-
 .path-box {
     background: #fff;
     border-radius: 1vh;
@@ -252,19 +238,6 @@ html, body {
     font-size: 16px;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap');
-
-#cash-balance {
-    position: fixed;
-    top: 5vh;
-    left: 2vw;
-    color: white;
-    font-size: 4vh;
-    font-family: 'Permanent Marker', cursive;
-    font-weight: bold;-webkit-text-stroke: 3px black;
-    z-index: 1000;
-}
-
 #sidebar {
     position: fixed;
     left: 0;
@@ -294,7 +267,7 @@ html, body {
 }
 
 .side-menu {
-    position: fixed;
+    position: absolute;
     left: 200px;
     top: 0;
     width: 300px;
@@ -313,50 +286,6 @@ html, body {
     display: block;
 }
 
-#units {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 1vh;
-    padding: 0.5%;
-    background-color: #323232;
-    left: -15%;
-    width: 14%;
-    height: 100%;
-    overflow-y: auto;
-    transition: ease-in-out 0.5s;
-}
-
-.unit {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    border-radius: 1vh;
-    color: white;
-    text-align: center;
-    height: 200px;
-    width: 100%;
-}
-
-.unit img {
-    width: 80%;
-    height: auto;
-    border-radius: 0.5vh;
-}
-
-.unit .price {
-    margin-top: 0.5vh;
-    font-size: 1.8vh;
-}
-
-.unit[data-target="ground"] {
-    background-color: green;
-}
-
-.unit[data-target="air"] {
-    background-color: blue;
-}
 
 .unit[data-target="hybrid"] {
     background-color: purple;

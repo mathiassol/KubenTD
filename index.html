@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Three.js</title>
+    <title>Three.js Tower Defense</title>
     <link rel="stylesheet" href="./main.css">
     <link rel="stylesheet" href="burger.css">
     <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
@@ -14,29 +14,476 @@
             }
         }
     </script>
+    <style>
+        /* to save time this entire css is AI enhanced */
+
+
+        :root {
+            --primary: #4caf50;
+            --secondary: #2196f3;
+            --danger: #f44336;
+            --warning: #ff9800;
+            --dark: #333;
+            --light: #f5f5f5;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+        }
+
+        #three-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Game Status Panel */
+        #game-status-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            min-width: 150px;
+            z-index: 10;
+        }
+
+        #wave-info {
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        #cash-balance {
+            position: static;
+            color: gold;
+            border-radius: 15px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        /* Health Bar */
+        #health-bar-container {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 25px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            overflow: hidden;
+            z-index: 10;
+            border: 2px solid white;
+        }
+
+        #health-bar {
+            height: 100%;
+            background-color: #4caf50;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        /* Wave Control */
+        #wave-control {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 10;
+        }
+
+        #start-wave-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        #start-wave-btn:hover {
+            background-color: #3d8b40;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        #start-wave-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        #start-wave-btn.disabled {
+            background-color: #777;
+            cursor: not-allowed;
+        }
+
+        #units {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 8px;
+            z-index: 10;
+        }
+
+        .unit {
+            position: relative;
+            width: 120px;
+            height: 100px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .unit:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-3px);
+        }
+
+        .unit.selected {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        .unit img {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        }
+
+        .unit .price {
+            position: absolute;
+            bottom: -5px;
+            background-color: gold;
+            color: black;
+            padding: 2px 5px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .unit .cooldown {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Unit Info Panel */
+        #unit-info-panel {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 250px;
+            z-index: 10;
+            display: none;
+        }
+
+        #unit-info-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        #unit-info-img {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+        }
+
+        #unit-info-name {
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .unit-stat {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+
+        .upgrade-btn {
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            margin-top: 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        .upgrade-btn:hover {
+            background-color: #1976d2;
+        }
+
+        .sell-btn {
+            background-color: var(--danger);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            margin-top: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        .sell-btn:hover {
+            background-color: #d32f2f;
+        }
+
+        #side-menu {
+            position: fixed;
+            display: none;
+            top: 0;
+            right: 0;
+            width: 300px;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            transition: right 0.3s ease;
+            z-index: 100;
+            color: white;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #text1{
+            color: black;
+        }
+        /* Notifications */
+        #notification-container {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            width: 250px;
+            z-index: 20;
+        }
+
+        .notification {
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            margin-bottom: 10px;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border-left: 4px solid var(--primary);
+            animation: slide-in 0.3s ease, fade-out 0.5s ease 2.5s forwards;
+            position: relative;
+        }
+
+        .notification.warning {
+            border-left-color: var(--warning);
+        }
+
+        .notification.error {
+            border-left-color: var(--danger);
+        }
+
+        @keyframes slide-in {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fade-out {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 200;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: var(--dark);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 80%;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-button {
+            padding: 8px 20px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        #confirm-button {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        #confirm-button:hover {
+            background-color: #d32f2f;
+        }
+
+        #cancel-button {
+            background-color: var(--light);
+            color: var(--dark);
+        }
+
+        #cancel-button:hover {
+            background-color: #e0e0e0;
+        }
+
+        /* Fast Forward Button */
+        #fast-forward {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            z-index: 10;
+        }
+
+        #fast-forward.active {
+            background-color: var(--warning);
+        }
+
+        /* FPS Counter */
+        #fps {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border-radius: 3px;
+            margin: 0;
+            z-index: 10;
+        }
+
+        /* Minimap has been removed */
+
+        /* Game Speed Control */
+        #speed-control {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+            z-index: 10;
+        }
+
+        .speed-btn {
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .speed-btn.active {
+            background-color: var(--primary);
+            box-shadow: 0 0 5px var(--primary);
+        }
+    </style>
 </head>
 <body>
 <canvas id="three-canvas"></canvas>
-<div id="health-bar-container">
-    <div id="health-bar" style="width: 100%;"></div>
+
+<!-- Game Status Panel -->
+<div id="game-status-panel">
+    <div id="wave-info">Wave: 1/30</div>
+    <div id="cash-balance">Cash: $300</div>
+    <div id="enemies-left">Enemies: 0/20</div>
+    <div id="score">Score: 0</div>
 </div>
+
+<!-- Health Bar -->
+<div id="health-bar-container">
+    <div id="health-bar" style="width: 100%;">100/100</div>
+</div>
+
+<!-- Side Menu - Kept empty but preserved for compatibility with existing code -->
 <div id="side-menu">
 </div>
 
-<div id="cash-balance">Cash: 300</div>
-
-<p id="fps" style="position: absolute; top: 10px; right: 10px; color: black; margin: 0;"></p>
-
-<div id="notification-container"></div>
-
-<div id="confirmation-dialog" class="modal">
-    <div class="modal-content">
-        <p>Are you sure you want to sell this unit?</p>
-        <button id="confirm-button" class="modal-button">Yes</button>
-        <button id="cancel-button" class="modal-button">No</button>
-    </div>
-</div>
-
+<!-- Tower Selection Panel -->
 <div id="units">
     <div class="unit" data-target="ground">
         <img src="units/attacker.png" alt="Ground Unit">
@@ -50,38 +497,136 @@
         <img src="path/to/hybrid-unit-image.png" alt="Hybrid Unit">
         <div class="price">$200</div>
     </div>
+    <div class="unit" data-target="aoe">
+        <img src="/api/placeholder/40/40" alt="AOE Tower">
+        <div class="price">$250</div>
+    </div>
+    <div class="unit" data-target="slow">
+        <img src="/api/placeholder/40/40" alt="Slow Tower">
+        <div class="price">$175</div>
+    </div>
 </div>
-<nav class="menu">
-    <input type="checkbox" href="#" class="menu-open" name="menu-open" id="menu-open">
-    <label class="menu-open-button" for="menu-open">
-        <span class="lines line-1"></span>
-        <span class="lines line-2"></span>
-        <span class="lines line-3"></span>
-    </label>
 
-    <a href="#" class="menu-item blue"> <i class="fa fa-anchor"></i> </a>
-    <a href="#" class="menu-item green"> <i class="fa fa-coffee"></i> </a>
-    <a href="mainmenu.html" class="menu-item red"> <i class="fa fa-heart"></i>Quit</a>
-    <a href="#" id="btn-units" class="menu-item purple"> <i class="fa fa-microphone"></i> </a>
-</nav>
-
-<div class="command-prompt" id="commandPrompt">
-    <input type="text" class="command-input" id="commandInput" placeholder="Enter command...">
+<!-- Unit Info Panel -->
+<div id="unit-info-panel">
+    <div id="unit-info-header">
+        <img id="unit-info-img" src="/api/placeholder/40/40" alt="Tower">
+        <div id="unit-info-name">Tower Name</div>
+    </div>
+    <div class="unit-stat">
+        <span>Level:</span>
+        <span id="unit-level">1</span>
+    </div>
+    <div class="unit-stat">
+        <span>Damage:</span>
+        <span id="unit-damage">10</span>
+    </div>
+    <div class="unit-stat">
+        <span>Range:</span>
+        <span id="unit-range">5</span>
+    </div>
+    <div class="unit-stat">
+        <span>Attack Speed:</span>
+        <span id="unit-speed">1.0s</span>
+    </div>
+    <div class="unit-stat">
+        <span>Targets:</span>
+        <span id="unit-targets">Ground</span>
+    </div>
+    <button id="upgrade-unit" class="upgrade-btn">Upgrade ($50)</button>
+    <button id="sell-unit" class="sell-btn">Sell ($40)</button>
 </div>
+
+<!-- Wave Control -->
+<div id="wave-control">
+    <button id="start-wave-btn">Start Wave</button>
+</div>
+
+<!-- Game Speed Control -->
+<div id="speed-control">
+    <button class="speed-btn active" data-speed="1">1x</button>
+    <button class="speed-btn" data-speed="2">2x</button>
+</div>
+
+<p id="fps">FPS: 60</p>
+
+<!-- Notifications Container -->
+<div id="notification-container"></div>
+
+<!-- Confirmation Dialog -->
+<div id="confirmation-dialog" class="modal">
+    <div class="modal-content">
+        <p>Are you sure you want to sell this unit?</p>
+        <button id="confirm-button" class="modal-button">Yes</button>
+        <button id="cancel-button" class="modal-button">No</button>
+    </div>
+</div>
+
 
 <script type="module" src="Scripts/mainFrame.js"></script>
 <script>
-    document.getElementById('btn-units').addEventListener('click', function() {
-        const sideMenu = document.getElementsByClassName('menu')[0];
-        const units = document.getElementById('units');
-        if (sideMenu.style.left == '16%') {
-            sideMenu.style.left = '1%';
-            units.style.left = '-15%';
-        } else {
-            sideMenu.style.left = '16%';
-            units.style.left = '0%';
-            console.log(1)
+    document.addEventListener('DOMContentLoaded', function() {
+        // Menu functionality removed
+
+        // Start wave button functionality
+        const startWaveBtn = document.getElementById('start-wave-btn');
+        startWaveBtn.addEventListener('click', function() {
+            if (!this.classList.contains('disabled')) {
+                // This would typically call a function from your game logic
+                showNotification('Wave started!', 'normal');
+                this.textContent = 'Wave in Progress...';
+                this.classList.add('disabled');
+
+                // This is just for demonstration - your actual game would handle this differently
+                setTimeout(() => {
+                    this.textContent = 'Start Wave';
+                    this.classList.remove('disabled');
+                    showNotification('Wave completed!', 'normal');
+                }, 5000);
+            }
+        });
+
+        // Speed control buttons
+        const speedButtons = document.querySelectorAll('.speed-btn');
+        speedButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                speedButtons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                const speed = this.getAttribute('data-speed');
+                // This would typically call a function from your game logic to set the game speed
+                showNotification(`Game speed set to ${speed}x`, 'normal');
+            });
+        });
+
+        // Unit selection
+        const units = document.querySelectorAll('.unit');
+        units.forEach(unit => {
+            unit.addEventListener('click', function() {
+                units.forEach(u => u.classList.remove('selected'));
+                this.classList.add('selected');
+                // This would typically call a function from your game logic
+            });
+        });
+
+        // Show notifications function
+        function showNotification(message, type = 'normal') {
+            const notificationContainer = document.getElementById('notification-container');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+
+            notificationContainer.appendChild(notification);
+
+            // Remove notification after animation completes
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
         }
+
+        // For demonstration purposes - show a welcome notification
+        setTimeout(() => {
+            showNotification('Welcome to Tower Defense Game!', 'normal');
+        }, 1000);
     });
 </script>
 </body>

@@ -182,7 +182,8 @@ export default class Unit {
             targets.sort((a, b) => a.distanceToEnd - b.distanceToEnd);
             this.invisible = unitConfig[this.type].invisible;
 
-            if (this.type !== 'hybrid') {
+            if (this.type === 'hybrid') {
+                console.log(1)
                 targets = targets.filter(target => this.target === target.type);
             }
             if (this.invisible === false){

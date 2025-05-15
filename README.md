@@ -87,7 +87,7 @@ to damage invisible enemies you need a tower with the invisible trait. The same 
 - [ ] Sound effects and music
 - [x] Game balance adjustments
 - [x] Performance optimization
-- [ ] UI/UX improvements
+- [x] UI/UX improvements
 
 ## Phase 4 - Additional Content
 - [ ] New tower types
