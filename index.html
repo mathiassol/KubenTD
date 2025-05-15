@@ -466,7 +466,6 @@
 <body>
 <canvas id="three-canvas"></canvas>
 
-<!-- Game Status Panel -->
 <div id="game-status-panel">
     <div id="wave-info">Wave: 1/30</div>
     <div id="cash-balance">Cash: $300</div>
@@ -474,16 +473,13 @@
     <div id="score">Score: 0</div>
 </div>
 
-<!-- Health Bar -->
 <div id="health-bar-container">
     <div id="health-bar" style="width: 100%;">100/100</div>
 </div>
 
-<!-- Side Menu - Kept empty but preserved for compatibility with existing code -->
 <div id="side-menu">
 </div>
 
-<!-- Tower Selection Panel -->
 <div id="units">
     <div class="unit" data-target="ground">
         <img src="units/attacker.png" alt="Ground Unit">
@@ -507,7 +503,6 @@
     </div>
 </div>
 
-<!-- Unit Info Panel -->
 <div id="unit-info-panel">
     <div id="unit-info-header">
         <img id="unit-info-img" src="/api/placeholder/40/40" alt="Tower">
@@ -537,23 +532,19 @@
     <button id="sell-unit" class="sell-btn">Sell ($40)</button>
 </div>
 
-<!-- Wave Control -->
 <div id="wave-control">
     <button id="start-wave-btn">Start Wave</button>
 </div>
-
-<!-- Game Speed Control -->
+>
 <div id="speed-control">
     <button class="speed-btn active" data-speed="1">1x</button>
     <button class="speed-btn" data-speed="2">2x</button>
 </div>
 
 <p id="fps">FPS: 60</p>
-
-<!-- Notifications Container -->
+>
 <div id="notification-container"></div>
 
-<!-- Confirmation Dialog -->
 <div id="confirmation-dialog" class="modal">
     <div class="modal-content">
         <p>Are you sure you want to sell this unit?</p>
@@ -565,50 +556,49 @@
 
 <script type="module" src="Scripts/mainFrame.js"></script>
 <script>
+    const clickSound = new Audio('SFX/click1.ogg');
+    clickSound.volume = 0.5;
+    function playClickSound() {
+        clickSound.currentTime = 0; // Reset sound to start
+        clickSound.play().catch(error => console.log("Audio play failed:", error));
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
-        // Menu functionality removed
 
-        // Start wave button functionality
-        const startWaveBtn = document.getElementById('start-wave-btn');
-        startWaveBtn.addEventListener('click', function() {
-            if (!this.classList.contains('disabled')) {
-                // This would typically call a function from your game logic
-                showNotification('Wave started!', 'normal');
-                this.textContent = 'Wave in Progress...';
-                this.classList.add('disabled');
-
-                // This is just for demonstration - your actual game would handle this differently
-                setTimeout(() => {
-                    this.textContent = 'Start Wave';
-                    this.classList.remove('disabled');
-                    showNotification('Wave completed!', 'normal');
-                }, 5000);
-            }
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('click', playClickSound);
         });
 
-        // Speed control buttons
+        // Add click sound to unit selection
+        const units = document.querySelectorAll('.unit');
+        units.forEach(unit => {
+            unit.addEventListener('click', function() {
+                playClickSound();
+                units.forEach(u => u.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+        });
+
+        // Add click sound to speed control buttons
         const speedButtons = document.querySelectorAll('.speed-btn');
         speedButtons.forEach(btn => {
             btn.addEventListener('click', function() {
+                playClickSound();
                 speedButtons.forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 const speed = this.getAttribute('data-speed');
-                // This would typically call a function from your game logic to set the game speed
                 showNotification(`Game speed set to ${speed}x`, 'normal');
             });
         });
 
-        // Unit selection
-        const units = document.querySelectorAll('.unit');
-        units.forEach(unit => {
-            unit.addEventListener('click', function() {
-                units.forEach(u => u.classList.remove('selected'));
-                this.classList.add('selected');
-                // This would typically call a function from your game logic
-            });
-        });
+        // Add click sound to upgrade and sell buttons
+        document.getElementById('upgrade-unit')?.addEventListener('click', playClickSound);
+        document.getElementById('sell-unit')?.addEventListener('click', playClickSound);
 
-        // Show notifications function
+        // Add click sound to confirmation dialog buttons
+        document.getElementById('confirm-button')?.addEventListener('click', playClickSound);
+        document.getElementById('cancel-button')?.addEventListener('click', playClickSound);
+
         function showNotification(message, type = 'normal') {
             const notificationContainer = document.getElementById('notification-container');
             const notification = document.createElement('div');
@@ -617,13 +607,11 @@
 
             notificationContainer.appendChild(notification);
 
-            // Remove notification after animation completes
             setTimeout(() => {
                 notification.remove();
             }, 3000);
         }
 
-        // For demonstration purposes - show a welcome notification
         setTimeout(() => {
             showNotification('Welcome to Tower Defense Game!', 'normal');
         }, 1000);

@@ -7,6 +7,15 @@ import Unit from './unit.js';
 import {unitConfig} from './unitConfig.js';
 import {easyWaveConfig, normalWaveConfig, hardWaveConfig} from "./enemyConfig.js";
 import {DamageText} from "./damageText.js";
+const cashSound = new Audio('SFX/cash.ogg');
+cashSound.volume = 0.1;
+cashSound.speed = 1.5;
+
+function playCashSound() {
+    cashSound.currentTime = 0;
+    cashSound.play().catch(error => console.log("Audio play failed:", error));
+}
+
 
 let cash = 20000;
 // Renderer
@@ -405,6 +414,7 @@ function showUnitMenu(unit) {
         button.addEventListener('click', (event) => {
             const newPath = event.target.getAttribute('data-path');
             unit.upgradePath(newPath);
+            playCashSound();
             showUnitMenu(unit);
         });
     });
@@ -415,6 +425,7 @@ function showUnitMenu(unit) {
 
         document.getElementById('confirm-button').onclick = () => {
             removeUnit(unit);
+            playCashSound();
             sideMenu.style.display = 'none';
             modal.style.display = 'none';
             if (unit.rangeCircle) {
