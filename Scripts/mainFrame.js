@@ -11,6 +11,10 @@ const cashSound = new Audio('SFX/cash.ogg');
 cashSound.volume = 0.1;
 cashSound.speed = 1.5;
 
+const NOSound = new Audio('SFX/click-NO.ogg');
+cashSound.volume = 0.1;
+cashSound.speed = 1.1;
+
 function playCashSound() {
     cashSound.currentTime = 0;
     cashSound.play().catch(error => console.log("Audio play failed:", error));
@@ -410,11 +414,21 @@ function showUnitMenu(unit) {
         }
     });
 
+// Inside the unit class path upgrade button event listener
     document.querySelectorAll('.path-button').forEach(button => {
         button.addEventListener('click', (event) => {
             const newPath = event.target.getAttribute('data-path');
-            unit.upgradePath(newPath);
-            playCashSound();
+            const upgradeCost = unitConfig[unit.type][newPath][unit.pathLevels[newPath]]?.upgradePrice;
+
+            if (cash >= upgradeCost) {
+                unit.upgradePath(newPath);
+                playCashSound();
+            } else {
+                NOSound.currentTime = 0;
+                NOSound.play().catch(error => console.log("Audio play failed:", error));
+                showNotification("Not enough cash!");
+                shakeCanvas();
+            }
             showUnitMenu(unit);
         });
     });
