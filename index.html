@@ -481,31 +481,11 @@
 </div>
 
 <div id="units">
-    <div class="unit" data-target="ground">
-        <img src="units/attacker.png" alt="Ground Unit">
-        <div class="price">$100</div>
-    </div>
-    <div class="unit" data-target="air">
-        <img src="path/to/air-unit-image.png" alt="Air Unit">
-        <div class="price">$150</div>
-    </div>
-    <div class="unit" data-target="hybrid">
-        <img src="path/to/hybrid-unit-image.png" alt="Hybrid Unit">
-        <div class="price">$200</div>
-    </div>
-    <div class="unit" data-target="aoe">
-        <img src="/api/placeholder/40/40" alt="AOE Tower">
-        <div class="price">$250</div>
-    </div>
-    <div class="unit" data-target="slow">
-        <img src="/api/placeholder/40/40" alt="Slow Tower">
-        <div class="price">$175</div>
-    </div>
 </div>
 
 <div id="unit-info-panel">
     <div id="unit-info-header">
-        <img id="unit-info-img" src="/api/placeholder/40/40" alt="Tower">
+        <img id="unit-info-img" alt="Tower">
         <div id="unit-info-name">Tower Name</div>
     </div>
     <div class="unit-stat">
@@ -559,7 +539,7 @@
     const clickSound = new Audio('SFX/click1.ogg');
     clickSound.volume = 0.5;
     function playClickSound() {
-        clickSound.currentTime = 0; // Reset sound to start
+        clickSound.currentTime = 0;
         clickSound.play().catch(error => console.log("Audio play failed:", error));
     }
 
@@ -569,7 +549,6 @@
             button.addEventListener('click', playClickSound);
         });
 
-        // Add click sound to unit selection
         const units = document.querySelectorAll('.unit');
         units.forEach(unit => {
             unit.addEventListener('click', function() {

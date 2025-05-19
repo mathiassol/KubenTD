@@ -89,14 +89,17 @@ to damage invisible enemies you need a tower with the invisible trait. The same 
 - [x] Performance optimization
 - [x] UI/UX improvements
 
-## Phase 4 - Additional Content
-- [ ] New tower types
-- [ ] New enemy types
-- [ ] Custom maps
-- [ ] Challenge modes
-- [ ] Leaderboards
-
 # Log
+## log 8 - polish, bug fixes and 3D design
+- 
+
+## log 7 - ui, SFX, 3D enchantments
+- upgraded all ui elements
+- started adding SFX 
+- is working on modeling and animating the units, enemies and map
+- reworked some core code to fix bugs and improve performance
+- debugged the entire codebase to try and solve some memory leaks (no idea if it fully fixed it)
+- stared working on the electron build to make it a ready-to-download desktop app. only making an arm64 and x64 version.
 
 ## log 6 - unit logic fixes
 - Fixed unit logic for tower targeting

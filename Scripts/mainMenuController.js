@@ -1,11 +1,14 @@
 let settingsChanged = false;
 let originalSettings = {};
 
+
+
 document.addEventListener('DOMContentLoaded', async function() {
     const displayModeSelect = document.getElementById('displayMode');
     const vsyncCheckbox = document.getElementById('vsync');
     const showFPSCheckbox = document.getElementById('showFPS');
     const fpsLimitInput = document.getElementById('fpsLimit');
+    const infCashCheckbox = document.getElementById('infCash');
 
     if (window.electron) {
         try {
@@ -30,6 +33,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             if (settings.FPScap !== undefined) {
                 fpsLimitInput.value = settings.FPScap;
+            }
+
+            if (settings.FPScap !== undefined) {
+                infCashCheckbox.value = settings.FPScap;
             }
         } catch (error) {
             console.error('Failed to load settings:', error);
@@ -63,6 +70,7 @@ function apply() {
     const vsync = document.getElementById('vsync').checked;
     const showFPS = document.getElementById('showFPS').checked;
     const FPScap = parseInt(document.getElementById('fpsLimit').value);
+    const infcash = parseInt(document.getElementById('infCash').value);
 
     if (window.electron) {
         window.electron.changeDisplayMode(displayMode);
@@ -76,7 +84,7 @@ function apply() {
                 FPScap: FPScap
             }
         };
-        
+
         window.electron.saveSettings(settings);
         console.log('Settings saved to INI file');
 
@@ -95,15 +103,15 @@ function apply() {
 function restoreSettings() {
     const displayModeSelect = document.getElementById('displayMode');
     const vsyncCheckbox = document.getElementById('vsync');
-    
+
     if (originalSettings.displayMode) {
         displayModeSelect.value = originalSettings.displayMode;
     }
-    
+
     if (originalSettings.vsync !== undefined) {
         vsyncCheckbox.checked = originalSettings.vsync;
     }
-    
+
     settingsChanged = false;
 }
 

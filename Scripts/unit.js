@@ -1,8 +1,11 @@
+import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { AudioLoader } from 'three';
+import { Audio, AudioListener } from 'three';
 import { unitConfig } from './unitConfig.js';
 import { cash, setCash } from './mainFrame.js';
 import { DamageText } from './damageText.js';
-import * as THREE from 'three';
+
 
 export default class Unit {
     constructor(scene, x, y, z, type, hoverableObjects) {
@@ -29,9 +32,39 @@ export default class Unit {
         this.lastAttackTime = 0;
         this.damageTexts = [];
         this.hoverableObjects = hoverableObjects || [];
+        this.initializeSound();
 
         this.loader = new GLTFLoader();
         this.loadModel(x, y, z);
+    }
+
+    initializeSound() {
+        const camera = this.scene.camera || this.scene.getObjectByProperty('type', 'PerspectiveCamera');
+
+        if (!this.scene.audioListener) {
+            this.scene.audioListener = new AudioListener();
+            if (camera) {
+                camera.add(this.scene.audioListener);
+            } else {
+                console.warn('Camera not found for audio listener');
+                return;
+            }
+        }
+        this.shootSound = new Audio(this.scene.audioListener);
+
+        const audioLoader = new AudioLoader();
+        const soundPath = `SFX/${this.type}_attack.ogg`;
+
+        audioLoader.load(soundPath, (buffer) => {
+            this.shootSound.setBuffer(buffer);
+            this.shootSound.setVolume(1.2);
+        });
+    }
+
+    playShootSound() {
+        if (this.shootSound && !this.shootSound.isPlaying) {
+            this.shootSound.play();
+        }
     }
 
     loadModel(x, y, z) {
@@ -59,13 +92,6 @@ export default class Unit {
                 this.hoverableObjects.push(this.mesh);
                 this.hoverableObjects.push(selectionBox);
             }
-
-            this.loader.load('assets/mortar/bullet.glb', (bulletGltf) => {
-                this.bulletMesh = bulletGltf.scene.children[0]?.clone();
-                if (this.bulletMesh && this.bulletMesh.material && this.bulletMesh.material.map) {
-                    this.bulletTexture = this.bulletMesh.material.map;
-                }
-            });
         });
     }
 
@@ -206,6 +232,9 @@ export default class Unit {
 
                 if (this.lastAttackTime >= this.attackSpeed) {
                     console.log("Attack triggered");
+
+                    this.playShootSound();
+
                     let damageDealt = this.damage;
                     if (this.magic === false && this.currentTarget.magic === true) {
                         damageDealt *= 0.7;
@@ -229,7 +258,6 @@ export default class Unit {
         this.damageTexts = this.damageTexts.filter(damageText => {
             const isActive = damageText.update();
             if (!isActive) {
-                // Properly dispose geometry and materials
                 if (damageText.mesh) {
                     if (damageText.mesh.geometry) damageText.mesh.geometry.dispose();
                     if (damageText.mesh.material) damageText.mesh.material.dispose();

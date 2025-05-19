@@ -19,9 +19,8 @@ function playCashSound() {
     cashSound.currentTime = 0;
     cashSound.play().catch(error => console.log("Audio play failed:", error));
 }
+let cash = 0;
 
-
-let cash = 20000;
 // Renderer
 
 let isListenerAdded = false;
@@ -113,8 +112,11 @@ const healthBar = document.getElementById('health-bar');
 
 function updateHealthBar() {
     healthBar.style.width = `${playerHealth}%`;
+    healthBar.style.backgroundColor = playerHealth > 50 ? 'green' : playerHealth > 20 ? 'yellow' : 'red';
+    healthBar.innerText = `${playerHealth}/100`;
     if (playerHealth <= 0) {}
 }
+updateHealthBar()
 const units = [];
 
 function removeUnit(unit) {
@@ -169,9 +171,12 @@ function createUnit(x, y, z, type) {
         units.push(unit);
         cash -= unitCost;
         updateCashDisplay();
+        playCashSound()
     } else {
         showNotification("Not enough cash");
         shakeCanvas();
+        NOSound.currentTime = 0;
+        NOSound.play().catch(error => console.log("Audio play failed:", error));
     }
 }
 
@@ -201,7 +206,6 @@ const CASH_UPDATE_INTERVAL = 100;
 export function updateCashDisplay() {
     const currentTime = performance.now();
 
-    // Only update if cash changed and enough time has passed
     if (cash !== lastCashValue && currentTime - lastCashUpdate > CASH_UPDATE_INTERVAL) {
         const cashBalanceElement = document.getElementById('cash-balance');
         cashBalanceElement.innerText = `Cash: ${cash}`;
@@ -270,51 +274,84 @@ let waveConfig = easyWaveConfig;
 getSettingsValue('game', 'difficulty').then(difficulty => {
     if (difficulty === 'easy') {
         waveConfig = easyWaveConfig;
+        cash = 1000;
+        const cashBalanceElement = document.getElementById('cash-balance');
+        cashBalanceElement.innerText = `Cash: ${cash}`;
     }if (difficulty === 'normal') {
         waveConfig = normalWaveConfig;
+        cash = 800;
+        const cashBalanceElement = document.getElementById('cash-balance');
+        cashBalanceElement.innerText = `Cash: ${cash}`;
     }if (difficulty === 'hard') {
         waveConfig = hardWaveConfig;
+        cash = 600;
+        const cashBalanceElement = document.getElementById('cash-balance');
+        cashBalanceElement.innerText = `Cash: ${cash}`;
     }
 });
-
 
 function spawnEnemy(path, delay, speed, health, type, invisible, magic, steal, cash) {
     setTimeout(() => {
         const enemy = new Enemy(scene, path, speed, health, type, invisible, magic, steal, cash);
-        enemies[enemy.id] = enemy; // Adds the enemy to the `enemies` object
-        hoverableObjects.push(enemy.enemy); // Adds the enemy's mesh to hoverable objects
+        enemies[enemy.id] = enemy;
+        hoverableObjects.push(enemy.enemy);
     }, delay);
 }
 
+let waveInProgress = false;
+let allEnemiesDefeated = true;
+
 function spawnWave() {
+    if (waveInProgress) {
+        showNotification("Wave already in progress!");
+        return;
+    }
+
+    if (Object.keys(enemies).length > 0) {
+        showNotification("Defeat all enemies before starting next wave!");
+        return;
+    }
+
     const waveData = waveConfig[waveCount];
     if (!waveData) {
         console.log("No more waves to spawn!");
         return;
     }
 
+    waveInProgress = true;
+    let enemiesSpawned = 0;
+    const totalEnemies = waveData.length;
+
     for (let i = 0; i < waveData.length; i++) {
         if (Object.keys(enemies).length < 100) {
             const enemyData = waveData[i];
-            spawnEnemy(path, i * 1000, enemyData.speed, enemyData.health, enemyData.type, enemyData.invisible, enemyData.magic, enemyData.steal, enemyData.cash);
+            setTimeout(() => {
+                spawnEnemy(path, 0, enemyData.speed, enemyData.health,
+                    enemyData.type, enemyData.invisible, enemyData.magic,
+                    enemyData.steal, enemyData.cash);
+                enemiesSpawned++;
+
+                if (enemiesSpawned === totalEnemies) {
+                    const checkInterval = setInterval(() => {
+                        if (Object.keys(enemies).length === 0) {
+                            waveInProgress = false;
+                            showNotification("Wave completed!");
+                            clearInterval(checkInterval);
+                        }
+                    }, 1000);
+                }
+            }, i * 1000);
         }
     }
     waveCount++;
 }
+const startWaveButton = document.getElementById("start-wave-btn")
+
+startWaveButton.addEventListener('click', () => {
+    spawnWave()
+});
 
 function handleKeyPress(event) {
-    if (event.key === "I" || event.key === "i") {
-        if (enemyInterval) {
-            clearInterval(enemyInterval);
-        }
-
-        spawnWave();
-    }
-    if (event.key === "u" || event.key === "U") {
-        Unit.startPlacementMode(scene, camera, 'attacker', (x, y, z, type) => {
-            createUnit(x, y, z, type, hoverableObjects);
-        });
-    }
     if (event.key === 'Shift' && event.location === 1) {
         controls.target.set(0, 3, 0)
 
@@ -400,7 +437,6 @@ function showUnitMenu(unit) {
         <button id="sell-button" class="sell-button">Sell Unit</button>
     `;
 
-    // Add range circle
     if (unit.rangeCircle) {
         scene.remove(unit.rangeCircle);
     }
@@ -414,7 +450,6 @@ function showUnitMenu(unit) {
         }
     });
 
-// Inside the unit class path upgrade button event listener
     document.querySelectorAll('.path-button').forEach(button => {
         button.addEventListener('click', (event) => {
             const newPath = event.target.getAttribute('data-path');
@@ -631,10 +666,13 @@ function draw() {
 
     // Update units
     units.forEach(unit => {
-        if (unit.mesh.visible) {
+        if (unit && unit.mesh && unit.mesh.visible) {
             const nearbyEnemies = Object.values(enemies).filter(enemy => {
-                const distance = unit.mesh.position.distanceTo(enemy.enemy.position);
-                return distance <= unit.range;
+                if (enemy && enemy.enemy) {
+                    const distance = unit.mesh.position.distanceTo(enemy.enemy.position);
+                    return distance <= unit.range;
+                }
+                return false;
             });
             unit.update(nearbyEnemies, deltaTime);
         }
@@ -669,14 +707,6 @@ function setSize() {
 // Event
 window.addEventListener('resize', setSize);
 
-document.getElementById("commandInput").addEventListener("keydown", function(event) {
-    if (event.key === "Enter") {
-        event.preventDefault();
-        let command = this.value.trim();
-        executeCommand(command);
-        this.value = "";
-    }
-});
 function executeCommand(command) {
     switch (true) {
         case command === "help":
