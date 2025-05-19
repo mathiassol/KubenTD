@@ -28,6 +28,8 @@ export default class Enemy {
         this.cash = cash;
         this.currentWaypointIndex = 0;
         this.isMoving = true;
+        this.enemy.castShadow = true;
+        this.enemy.receiveShadow = true;
 
         this.id = `enemy_${enemyCounter++}`;
         this.enemyGeometry = new THREE.SphereGeometry(2, 16, 16);

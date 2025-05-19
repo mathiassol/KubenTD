@@ -1,5 +1,5 @@
 const unitConfig = {
-    mortar: {  // Basic starter unit - hybrid damage but weaker stats
+    gunnar: {  // Basic starter unit - hybrid damage but weaker stats
         price: 250,
         baseStats: { damage: 1, range: 45, attackSpeed: 1.1 },
         target: 'hybrid',

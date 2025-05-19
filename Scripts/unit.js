@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { AudioLoader } from 'three';
+import { AnimationMixer } from 'three';
 import { Audio, AudioListener } from 'three';
 import { unitConfig } from './unitConfig.js';
 import { cash, setCash } from './mainFrame.js';
@@ -33,6 +34,8 @@ export default class Unit {
         this.damageTexts = [];
         this.hoverableObjects = hoverableObjects || [];
         this.initializeSound();
+        this.mixer = null;
+        this.action = null;
 
         this.loader = new GLTFLoader();
         this.loadModel(x, y, z);
@@ -77,7 +80,27 @@ export default class Unit {
             this.mesh.scale.set(scale, scale, scale);
             this.mesh.rotation.y = Math.PI / 2;
 
+            const UNIT_ANIMATIONS = {
+                gunnar: 1,
+                mage: 2,
+                archer: 0
+            };
+
+            if (gltf.animations.length > 0) {
+                this.mixer = new AnimationMixer(this.mesh);
+                const animationIndex = UNIT_ANIMATIONS[this.type] ?? 0;
+                this.action = this.mixer.clipAction(gltf.animations[animationIndex]);
+                this.action.setLoop(THREE.LoopOnce);
+                this.action.clampWhenFinished = true;
+                this.action.play();
+                this.mixer.update(this.action.getClip().duration);
+                this.action.paused = true;
+            }
+
             this.scene.add(this.mesh);
+
+            this.mesh.castShadow = true;
+            this.mesh.receiveShadow = true;
 
             const boxGeometry = new THREE.BoxGeometry(10, 10, 10);
             const boxMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0 });
@@ -96,21 +119,8 @@ export default class Unit {
     }
 
     getModelPath() {
-        const basePath = `assets/${this.type}/`;
-        let modelName = `${this.type}-1.glb`;
-
-        if (this.pathLevels.path1 === unitConfig[this.type].path1.length) {
-            modelName = `${this.type}-max1.glb`;
-        } else if (this.pathLevels.path2 === unitConfig[this.type].path2.length) {
-            modelName = `${this.type}-max2.glb`;
-        } else if (this.pathLevels.path3 === unitConfig[this.type].path3.length) {
-            modelName = `${this.type}-max3.glb`;
-        } else {
-            const maxLevel = Math.max(this.pathLevels.path1, this.pathLevels.path2, this.pathLevels.path3);
-            if (maxLevel > 1) {
-                modelName = `${this.type}-${Math.min(maxLevel, 3)}.glb`;
-            }
-        }
+        const basePath = `assets/`;
+        let modelName = `${this.type}.glb`;
 
         return basePath + modelName;
     }
@@ -199,7 +209,18 @@ export default class Unit {
         );
     }
 
+    playShootAnimation() {
+        if (this.action) {
+            this.action.reset();
+            this.action.play();
+        }
+    }
+
     update(enemies, deltaTime) {
+        if (this.mixer) {
+            this.mixer.update(deltaTime);
+        }
+
         this.lastAttackTime += deltaTime;
 
         let targets = this.findEnemiesInRange(enemies);
@@ -234,6 +255,7 @@ export default class Unit {
                     console.log("Attack triggered");
 
                     this.playShootSound();
+                    this.playShootAnimation();
 
                     let damageDealt = this.damage;
                     if (this.magic === false && this.currentTarget.magic === true) {

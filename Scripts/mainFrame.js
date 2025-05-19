@@ -84,6 +84,39 @@ floorMesh.rotation.x = -Math.PI / 2;
 floorMesh.position.y = -5;
 scene.add(floorMesh);
 
+// Main directional light (sun)
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+directionalLight.position.set(50, 100, 50);
+directionalLight.castShadow = true;
+
+// Optimize shadow settings
+directionalLight.shadow.mapSize.width = 2048;
+directionalLight.shadow.mapSize.height = 2048;
+directionalLight.shadow.camera.near = 0.5;
+directionalLight.shadow.camera.far = 500;
+directionalLight.shadow.camera.left = -100;
+directionalLight.shadow.camera.right = 100;
+directionalLight.shadow.camera.top = 100;
+directionalLight.shadow.camera.bottom = -100;
+directionalLight.shadow.bias = -0.0001;
+
+// Ambient light for general illumination
+const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+
+// Hemisphere light for sky/ground color variation
+const hemisphereLight = new THREE.HemisphereLight(0x8DC8FF, 0x545454, 0.4);
+
+scene.add(directionalLight);
+scene.add(ambientLight);
+scene.add(hemisphereLight);
+
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+floorMesh.receiveShadow = true;
+
+
+
 const geometry = new THREE.BoxGeometry(10, 10, 10);
 const material = new THREE.MeshLambertMaterial({
     color: 'blue'
@@ -106,6 +139,8 @@ function cleanupScene() {
         }
     }
 }
+
+
 
 let playerHealth = 100;
 const healthBar = document.getElementById('health-bar');
