@@ -1,9 +1,13 @@
 import * as THREE from 'three';
-import { WebGLRenderTarget } from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { initCartoonWater, updateCartoonWater } from "./water.js";
+
 import {initRaycasting} from './raycasterUtils.js';
 import {buildWorld} from "./worldElements.js";
-import { createVolumetricLightingSetup } from "./LightingScene.js";
+
 import Enemy from './enemy.js';
 import Unit from './unit.js';
 import {unitConfig} from './unitConfig.js';
@@ -47,7 +51,6 @@ const renderer = new THREE.WebGLRenderer({
     })
 });
 
-
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio > 1 ? 2 : 1);
 renderer.setPixelRatio(1);
@@ -55,18 +58,28 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
+renderer.physicallyCorrectLights = true;
 document.body.appendChild(renderer.domElement);
+
+
+window.addEventListener('resize', () => {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    renderer.setSize(width, height);
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+});
 
 // Scene
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('white');
-scene.fog = new THREE.FogExp2(0x11161a, 0.01);
+scene.background = new THREE.Color(0x87ceeb); // Light sky blue
 // Camera
 const camera = new THREE.PerspectiveCamera(
     75,
     window.innerWidth / window.innerHeight,
     0.1,
-    100000
+    2000
 );
 camera.position.y = 30;
 camera.position.z = 50;
@@ -80,8 +93,64 @@ controls.enablePan = false;
 controls.minDistance = 2;
 controls.maxDistance = 150;
 
-const lights = createVolumetricLightingSetup({ scene });
+const textureLoader = new THREE.TextureLoader();
+const pmremGenerator = new THREE.PMREMGenerator(renderer);
+const envTexture = textureLoader.load('textures/hdr.hdr', (tex) => {
+    const envMap = pmremGenerator.fromEquirectangular(tex).texture;
+    scene.environment = envMap;
+    tex.dispose();
+    pmremGenerator.dispose();
+});
 
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+
+
+const sun = new THREE.Mesh(
+    new THREE.SphereGeometry(10, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0xffffbb })
+);
+sun.position.set(100, 150, 100);
+sun.castShadow = true;
+scene.add(sun);
+
+
+const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    1.5, // strength
+    0.4, // radius
+    0.85 // threshold
+);
+composer.addPass(bloomPass);
+
+const sunLight = new THREE.DirectionalLight(0xfff2cc, 1.1);
+sunLight.position.copy(sun.position)
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.width = 2048;
+sunLight.shadow.mapSize.height = 2048;
+sunLight.shadow.radius = 4;
+sunLight.shadow.autoUpdate = true;
+sunLight.shadow.camera.near = 10;
+sunLight.shadow.camera.far = 500;
+sunLight.shadow.camera.left = -100;
+sunLight.shadow.camera.right = 100;
+sunLight.shadow.camera.top = 100;
+sunLight.shadow.camera.bottom = -100;
+sunLight.shadow.bias = -0.000001; // Reduce shadow acne
+sunLight.shadow.camera.updateProjectionMatrix();
+
+scene.add(sunLight);
+
+const hemiColor = new THREE.HemisphereLight(0xddeeff, 0x444422, 0.6); // Sky / ground subtle tone
+scene.add(hemiColor);
+
+
+const skyGeo = new THREE.SphereGeometry(5000, 25, 25);
+const skyMat = new THREE.MeshBasicMaterial({ color: 0x87ceeb, side: THREE.BackSide });
+const sky = new THREE.Mesh(skyGeo, skyMat);
+scene.add(sky);
+
+initCartoonWater(scene, camera, renderer)
 
 buildWorld(scene)
 
@@ -90,7 +159,8 @@ const floorMesh = new THREE.Mesh(
     new THREE.MeshLambertMaterial({
         color: 'burlywood',
         side: THREE.DoubleSide
-    })
+    }),
+    new THREE.ShadowMaterial({ opacity: 0.2 })
 );
 floorMesh.rotation.x = -Math.PI / 2;
 floorMesh.position.y = -5;
@@ -99,15 +169,27 @@ floorMesh.material.polygonOffset = true;
 floorMesh.material.polygonOffsetFactor = 1; // Adjust as needed
 floorMesh.material.polygonOffsetUnits = 1;
 scene.add(floorMesh);
+const aoMap = textureLoader.load('textures/AO.jpg');
+
 
 const geometry = new THREE.BoxGeometry(10, 10, 10);
-const material = new THREE.MeshLambertMaterial({
-    color: 'blue'
+geometry.setAttribute('uv2', new THREE.BufferAttribute(geometry.attributes.uv.array, 2));
+
+const material = new THREE.MeshPhysicalMaterial({
+    color: 0xffffff,
+    roughness: 0.35,
+    metalness: 0.1,
+    clearcoat: 0.4,
+    clearcoatRoughness: 0.2,
+    reflectivity: 0.3,
+    depthWrite: true, // Ensure depth is written
+    depthTest: true,  // Ensure depth testing
 });
 const boxMesh = new THREE.Mesh(geometry, material);
 boxMesh.position.z = 10;
 boxMesh.castShadow = true;
 boxMesh.receiveShadow = true;
+
 scene.add(boxMesh);
 
 const boxMesh2 = new THREE.Mesh(geometry, material);
@@ -124,6 +206,7 @@ function cleanupScene() {
         }
     }
 }
+
 
 
 
@@ -702,11 +785,11 @@ function draw() {
     cleanupScene();
     renderer.render(scene, camera);
     DamageText.updateAll();
+    composer.render()
 }
 
 function animate() {
     requestAnimationFrame(animate);
-
     draw();
 }
 animate();
@@ -719,11 +802,21 @@ setInterval(logMemoryUsage, 5000);
 export { hoverableObjects };
 
 function setSize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    // Update camera
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.render(scene, camera);
+
+    // Update renderer and
+    renderer.setSize(width, height);
+
+    // Reset pixel ratio if needed
+    const pixelRatio = window.devicePixelRatio > 1 ? 2 : 1;
+    renderer.setPixelRatio(pixelRatio);
 }
+
 
 // Event
 window.addEventListener('resize', setSize);
