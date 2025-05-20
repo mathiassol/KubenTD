@@ -44,7 +44,6 @@ export function createVolumetricLightingSetup({
     const hemiLight = new THREE.HemisphereLight(0xddeeff, 0x202020, 0);
     scene.add(hemiLight);
 
-    // Directional Light (sunlight) with shadows
     const dirLight = new THREE.DirectionalLight(lightColor, lightIntensity);
     dirLight.position.set(10, 20, 10);
     dirLight.castShadow = true;

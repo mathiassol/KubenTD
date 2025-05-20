@@ -79,6 +79,15 @@ export default class Unit {
             const scale = 3;
             this.mesh.scale.set(scale, scale, scale);
             this.mesh.rotation.y = Math.PI / 2;
+            this.mesh.userData.isUnit = true;
+
+            // Enable shadows for the model and all its children
+            this.mesh.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
 
             const UNIT_ANIMATIONS = {
                 gunnar: 1,
@@ -98,18 +107,8 @@ export default class Unit {
             }
             this.scene.add(this.mesh);
 
-            const boxGeometry = new THREE.BoxGeometry(10, 10, 10);
-            const boxMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0 });
-            const selectionBox = new THREE.Mesh(boxGeometry, boxMaterial);
-            selectionBox.position.set(x, y, z);
-            selectionBox.userData.isSelectionBox = true;
-            selectionBox.userData.unit = this;
-            selectionBox.renderOrder = 1;
-            this.scene.add(selectionBox);
-
             if (this.mesh) {
                 this.hoverableObjects.push(this.mesh);
-                this.hoverableObjects.push(selectionBox);
             }
         });
     }
@@ -288,19 +287,69 @@ export default class Unit {
 
     static startPlacementMode(scene, camera, type, onPlace) {
         console.log("startPlacementMode triggered");
-        let previewMesh = new THREE.Mesh(
-            new THREE.BoxGeometry(5, 10, 5),
-            new THREE.MeshLambertMaterial({ color: 'green', transparent: true, opacity: 0.5 })
-        );
+
+        const previewContainer = new THREE.Group();
+        scene.add(previewContainer);
 
         const circleGeometry = new THREE.CircleGeometry(7.5, 32);
-        const circleMaterial = new THREE.MeshBasicMaterial({ color: 'blue', transparent: true, opacity: 0.5 });
+        const circleMaterial = new THREE.MeshBasicMaterial({
+            color: 'blue',
+            transparent: true,
+            opacity: 0.5
+        });
         const circleMesh = new THREE.Mesh(circleGeometry, circleMaterial);
         circleMesh.rotation.x = -Math.PI / 2;
         circleMesh.position.y = -4.8;
-        previewMesh.add(circleMesh);
+        previewContainer.add(circleMesh);
 
-        scene.add(previewMesh);
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = 256;
+        canvas.height = 64;
+        context.font = 'bold 32px Arial';
+        context.fillStyle = 'rgba(255,255,255,0.8)';
+        context.textAlign = 'center';
+        context.fillText('Q Cancel', canvas.width / 2, canvas.height / 2);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        const spriteMaterial = new THREE.SpriteMaterial({
+            map: texture,
+            transparent: true,
+            blending: THREE.NormalBlending,
+            depthTest: false
+        });
+        const textSprite = new THREE.Sprite(spriteMaterial);
+        textSprite.scale.set(10, 2.5, 1);
+        textSprite.position.y = 10;
+
+        previewContainer.add(textSprite);
+
+        const loader = new GLTFLoader();
+        const modelPath = `assets/${type}.glb`;
+
+        loader.load(modelPath, (gltf) => {
+            const model = gltf.scene;
+            const scale = 3;
+            model.scale.set(scale, scale, scale);
+            model.rotation.y = Math.PI / 2;
+
+            model.traverse((child) => {
+                if (child.isMesh) {
+                    child.material = child.material.clone();
+                    child.material.transparent = true;
+                    child.material.opacity = 0.7;
+                }
+            });
+
+            previewContainer.add(model);
+        });
+
+        function cleanupPlacement() {
+            scene.remove(previewContainer);
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('click', onMouseClick);
+            window.removeEventListener('keydown', onKeyDown);
+        }
 
         function onMouseMove(event) {
             const mouse = new THREE.Vector2(
@@ -317,8 +366,8 @@ export default class Unit {
 
                 if (intersects.length > 0) {
                     const position = intersects[0].point;
-                    previewMesh.position.set(position.x, 0, position.z);
-                    if (Unit.Colliding(position, scene, previewMesh)) {
+                    previewContainer.position.set(position.x, 0, position.z);
+                    if (Unit.Colliding(position, scene, previewContainer)) {
                         circleMesh.material.color.set('red');
                     } else {
                         circleMesh.material.color.set('blue');
@@ -327,16 +376,25 @@ export default class Unit {
             }
         }
 
-        function onMouseClick() {
+        function onMouseClick(event) {
             if (circleMesh.material.color.getHexString() !== 'ff0000') {
-                scene.remove(previewMesh);
-                window.removeEventListener('mousemove', onMouseMove);
-                window.removeEventListener('click', onMouseClick);
-                onPlace(previewMesh.position.x, 0, previewMesh.position.z, type);
+                const position = { x: previewContainer.position.x, y: 0, z: previewContainer.position.z };
+                onPlace(position.x, position.y, position.z, type);
+
+                if (!event.shiftKey) {
+                    cleanupPlacement();
+                }
+            }
+        }
+
+        function onKeyDown(event) {
+            if (event.key === 'q' || event.key === 'Q') {
+                cleanupPlacement();
             }
         }
 
         window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('keydown', onKeyDown);
 
         setTimeout(() => {
             window.addEventListener('click', onMouseClick);
@@ -344,10 +402,27 @@ export default class Unit {
     }
 
     static Colliding(position, scene, previewMesh) {
-        const collisionRadius = 10;
-        const units = scene.children.filter(obj => obj.isMesh && obj !== previewMesh);
+        const collisionRadius = 7;
+        const units = scene.children.filter(obj => {
+            return (obj.isMesh && obj.userData.isUnit) ||
+                (obj.type === "Group" && obj.children.some(child => child.userData.isUnit)) ||
+                (obj.type === "Group" && obj.userData.isUnit);
+        });
+
+        const positionVec = new THREE.Vector3(position.x, 0, position.z);
+
         for (const unit of units) {
-            if (unit.position.distanceTo(position) < collisionRadius) {
+            if (unit === previewMesh) continue;
+
+            let unitPosition;
+            if (unit.type === "Group") {
+                unitPosition = new THREE.Vector3(unit.position.x, 0, unit.position.z);
+            } else {
+                unitPosition = new THREE.Vector3(unit.position.x, 0, unit.position.z);
+            }
+
+            const distance = unitPosition.distanceTo(positionVec);
+            if (distance < collisionRadius * 2) {
                 return true;
             }
         }

@@ -3,7 +3,6 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { initCartoonWater, updateCartoonWater } from "./water.js";
 
 import {initRaycasting} from './raycasterUtils.js';
 import {buildWorld} from "./worldElements.js";
@@ -43,7 +42,7 @@ init()
 const canvas = document.querySelector('#three-canvas');
 const renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: false,
+    antialias: true,
     powerPreference: 'high-performance',
     context: canvas.getContext('webgl2', {
         powerPreference: 'high-performance',
@@ -58,7 +57,6 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
-renderer.physicallyCorrectLights = true;
 document.body.appendChild(renderer.domElement);
 
 
@@ -150,8 +148,6 @@ const skyMat = new THREE.MeshBasicMaterial({ color: 0x87ceeb, side: THREE.BackSi
 const sky = new THREE.Mesh(skyGeo, skyMat);
 scene.add(sky);
 
-initCartoonWater(scene, camera, renderer)
-
 buildWorld(scene)
 
 const floorMesh = new THREE.Mesh(
@@ -195,6 +191,7 @@ scene.add(boxMesh);
 const boxMesh2 = new THREE.Mesh(geometry, material);
 boxMesh2.position.z = -10;
 scene.add(boxMesh2);
+
 
 function cleanupScene() {
     for (const id in enemies) {
@@ -634,56 +631,71 @@ document.addEventListener('DOMContentLoaded', () => {
 function handleObjectClick(position, object) {
     if (!object) {
         console.warn("Clicked object is undefined.");
-        return;
-    }
+        // Clean up any open menus and range circles
+        const sideMenu = document.getElementById('side-menu');
+        sideMenu.style.display = 'none';
 
-    console.log(`Clicked object at: x=${position.x}, y=${position.y}, z=${position.z}`);
-
-    if (object.userData.isSelectionBox) {
-        const unit = object.userData.unit;
-        if (unit) {
-            if (selectedObject && selectedObject.userData.unit) {
-                const previousUnit = selectedObject.userData.unit;
-                if (previousUnit.rangeCircle) {
-                    scene.remove(previousUnit.rangeCircle);
-                    previousUnit.rangeCircle = null;
-                }
-                const sideMenu = document.getElementById('side-menu');
-                sideMenu.style.display = 'none';
+        // Remove range circles from all units
+        units.forEach(unit => {
+            if (unit.rangeCircle) {
+                scene.remove(unit.rangeCircle);
+                unit.rangeCircle = null;
             }
-            showUnitMenu(unit);
-        }
-        selectedObject = object;
+        });
         return;
     }
 
+    const sideMenu = document.getElementById('side-menu');
+
+    // Clean up previous selection
     if (selectedObject) {
+        if (selectedObject.userData && selectedObject.userData.unit) {
+            const previousUnit = selectedObject.userData.unit;
+            if (previousUnit.rangeCircle) {
+                scene.remove(previousUnit.rangeCircle);
+                previousUnit.rangeCircle = null;
+            }
+        }
         const previousEnemy = Object.values(enemies).find(enemy => enemy.enemy.uuid === selectedObject.uuid);
         if (previousEnemy) {
             previousEnemy.healthBar.visible = false;
         }
     }
 
-    selectedUUID = object.uuid;
-    selectedObject = object;
-    console.log(`Selected UUID: ${selectedUUID}`);
+    // Find clicked unit
+    const clickedUnit = units.find(unit => {
+        if (!unit.mesh) return false;
+        let current = object;
+        while (current) {
+            if (current === unit.mesh) return true;
+            current = current.parent;
+        }
+        return false;
+    });
 
+    // If clicked on a unit, show menu and range circle
+    if (clickedUnit) {
+        showUnitMenu(clickedUnit);
+        selectedObject = clickedUnit.mesh;
+        selectedUUID = clickedUnit.mesh.uuid;
+        controls.target.set(position.x, position.y, position.z);
+        controls.update();
+        return;
+    }
+
+    // If clicked elsewhere, clean up
+    sideMenu.style.display = 'none';
+    units.forEach(unit => {
+        if (unit.rangeCircle) {
+            scene.remove(unit.rangeCircle);
+            unit.rangeCircle = null;
+        }
+    });
+
+    selectedObject = object;
+    selectedUUID = object.uuid;
     controls.target.set(position.x, position.y, position.z);
     controls.update();
-
-    const clickedUnit = units.find(unit => unit.mesh.uuid === object.uuid);
-    if (clickedUnit) {
-        if (selectedObject && selectedObject.userData.unit) {
-            const previousUnit = selectedObject.userData.unit;
-            if (previousUnit.rangeCircle) {
-                scene.remove(previousUnit.rangeCircle);
-                previousUnit.rangeCircle = null;
-            }
-            const sideMenu = document.getElementById('side-menu');
-            sideMenu.style.display = 'none';
-        }
-        showUnitMenu(clickedUnit);
-    }
 
     const clickedEnemy = Object.values(enemies).find(enemy => enemy.enemy.uuid === object.uuid);
     if (clickedEnemy) {
@@ -739,8 +751,7 @@ function setUnitLevel(unitIndex, newLevel) {
     }
 }
 
-initRaycasting(scene, camera, floorMesh, hoverableObjects, handleObjectClick);
-
+initRaycasting(scene, camera, floorMesh, hoverableObjects, handleObjectClick, units);
 const speedFactor = 1;
 let frameCount = 0;
 let lastFPSUpdate = performance.now();
@@ -784,8 +795,9 @@ function draw() {
     updateCamera(scene);
     cleanupScene();
     renderer.render(scene, camera);
+    composer.render();
+
     DamageText.updateAll();
-    composer.render()
 }
 
 function animate() {
