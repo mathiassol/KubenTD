@@ -96,11 +96,7 @@ export default class Unit {
                 this.mixer.update(this.action.getClip().duration);
                 this.action.paused = true;
             }
-
             this.scene.add(this.mesh);
-
-            this.mesh.castShadow = true;
-            this.mesh.receiveShadow = true;
 
             const boxGeometry = new THREE.BoxGeometry(10, 10, 10);
             const boxMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0 });

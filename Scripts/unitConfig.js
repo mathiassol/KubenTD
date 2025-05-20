@@ -59,7 +59,7 @@ const unitConfig = {
             { damage: 15, range: 35, attackSpeed: -0.04, upgradePrice: 250 },
         ]
     },
-    archer: {  // Physical damage, air target specialist
+    sniper: {  // Physical damage, air target specialist
         price: 350,
         baseStats: { damage: 12, range: 60, attackSpeed: 0.2 },
         target: 'air',

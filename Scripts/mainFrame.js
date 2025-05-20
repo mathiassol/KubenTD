@@ -1,7 +1,9 @@
 import * as THREE from 'three';
+import { WebGLRenderTarget } from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {initRaycasting} from './raycasterUtils.js';
 import {buildWorld} from "./worldElements.js";
+import { createVolumetricLightingSetup } from "./LightingScene.js";
 import Enemy from './enemy.js';
 import Unit from './unit.js';
 import {unitConfig} from './unitConfig.js';
@@ -21,8 +23,6 @@ function playCashSound() {
 }
 let cash = 0;
 
-// Renderer
-
 let isListenerAdded = false;
 
 console.log("mainFrame.js script loaded");
@@ -35,6 +35,7 @@ function init() {
 }
 init()
 
+// Renderer
 const canvas = document.querySelector('#three-canvas');
 const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -45,19 +46,27 @@ const renderer = new THREE.WebGLRenderer({
         desynchronized: true
     })
 });
+
+
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio > 1 ? 2 : 1);
 renderer.setPixelRatio(1);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+document.body.appendChild(renderer.domElement);
+
 // Scene
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('white');
-scene.fog = new THREE.Fog(scene.background, 3500, 15000);
+scene.fog = new THREE.FogExp2(0x11161a, 0.01);
 // Camera
 const camera = new THREE.PerspectiveCamera(
     75,
     window.innerWidth / window.innerHeight,
     0.1,
-    1000
+    100000
 );
 camera.position.y = 30;
 camera.position.z = 50;
@@ -71,6 +80,9 @@ controls.enablePan = false;
 controls.minDistance = 2;
 controls.maxDistance = 150;
 
+const lights = createVolumetricLightingSetup({ scene });
+
+
 buildWorld(scene)
 
 const floorMesh = new THREE.Mesh(
@@ -82,40 +94,11 @@ const floorMesh = new THREE.Mesh(
 );
 floorMesh.rotation.x = -Math.PI / 2;
 floorMesh.position.y = -5;
-scene.add(floorMesh);
-
-// Main directional light (sun)
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-directionalLight.position.set(50, 100, 50);
-directionalLight.castShadow = true;
-
-// Optimize shadow settings
-directionalLight.shadow.mapSize.width = 2048;
-directionalLight.shadow.mapSize.height = 2048;
-directionalLight.shadow.camera.near = 0.5;
-directionalLight.shadow.camera.far = 500;
-directionalLight.shadow.camera.left = -100;
-directionalLight.shadow.camera.right = 100;
-directionalLight.shadow.camera.top = 100;
-directionalLight.shadow.camera.bottom = -100;
-directionalLight.shadow.bias = -0.0001;
-
-// Ambient light for general illumination
-const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
-
-// Hemisphere light for sky/ground color variation
-const hemisphereLight = new THREE.HemisphereLight(0x8DC8FF, 0x545454, 0.4);
-
-scene.add(directionalLight);
-scene.add(ambientLight);
-scene.add(hemisphereLight);
-
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
 floorMesh.receiveShadow = true;
-
-
+floorMesh.material.polygonOffset = true;
+floorMesh.material.polygonOffsetFactor = 1; // Adjust as needed
+floorMesh.material.polygonOffsetUnits = 1;
+scene.add(floorMesh);
 
 const geometry = new THREE.BoxGeometry(10, 10, 10);
 const material = new THREE.MeshLambertMaterial({
@@ -123,6 +106,8 @@ const material = new THREE.MeshLambertMaterial({
 });
 const boxMesh = new THREE.Mesh(geometry, material);
 boxMesh.position.z = 10;
+boxMesh.castShadow = true;
+boxMesh.receiveShadow = true;
 scene.add(boxMesh);
 
 const boxMesh2 = new THREE.Mesh(geometry, material);
@@ -721,6 +706,7 @@ function draw() {
 
 function animate() {
     requestAnimationFrame(animate);
+
     draw();
 }
 animate();

@@ -28,8 +28,6 @@ export default class Enemy {
         this.cash = cash;
         this.currentWaypointIndex = 0;
         this.isMoving = true;
-        this.enemy.castShadow = true;
-        this.enemy.receiveShadow = true;
 
         this.id = `enemy_${enemyCounter++}`;
         this.enemyGeometry = new THREE.SphereGeometry(2, 16, 16);
@@ -42,6 +40,8 @@ export default class Enemy {
             this.enemy.position.set(0, 10, 0);
         }
         this.scene.add(this.enemy);
+
+
 
         const healthBarGeometry = new THREE.PlaneGeometry(5, 0.5);
         const healthBarMaterial = new THREE.MeshBasicMaterial({
