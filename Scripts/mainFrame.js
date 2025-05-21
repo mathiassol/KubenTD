@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -42,7 +43,7 @@ init()
 const canvas = document.querySelector('#three-canvas');
 const renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: true,
+    antialias: false,
     powerPreference: 'high-performance',
     context: canvas.getContext('webgl2', {
         powerPreference: 'high-performance',
@@ -52,7 +53,6 @@ const renderer = new THREE.WebGLRenderer({
 
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio > 1 ? 2 : 1);
-renderer.setPixelRatio(1);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -71,7 +71,7 @@ window.addEventListener('resize', () => {
 
 // Scene
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb); // Light sky blue
+scene.background = new THREE.Color(0x87ceeb);
 // Camera
 const camera = new THREE.PerspectiveCamera(
     75,
@@ -102,16 +102,21 @@ const envTexture = textureLoader.load('textures/hdr.hdr', (tex) => {
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
+const renderTarget = new THREE.WebGLRenderTarget(window.innerWidth / 2, window.innerHeight / 2, {
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.LinearFilter,
+    format: THREE.RGBAFormat,
+});
+composer.setSize(renderTarget.width, renderTarget.height);
 
 
 const sun = new THREE.Mesh(
     new THREE.SphereGeometry(10, 32, 32),
     new THREE.MeshBasicMaterial({ color: 0xffffbb })
 );
-sun.position.set(100, 150, 100);
+sun.position.set(200, 300, 200);
 sun.castShadow = true;
 scene.add(sun);
-
 
 const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
@@ -121,25 +126,25 @@ const bloomPass = new UnrealBloomPass(
 );
 composer.addPass(bloomPass);
 
-const sunLight = new THREE.DirectionalLight(0xfff2cc, 1.1);
+const sunLight = new THREE.DirectionalLight(0xfff2cc, 0.1);
 sunLight.position.copy(sun.position)
 sunLight.castShadow = true;
-sunLight.shadow.mapSize.width = 2048;
+sunLight.shadow.mapSize.width = 2028;
 sunLight.shadow.mapSize.height = 2048;
 sunLight.shadow.radius = 4;
 sunLight.shadow.autoUpdate = true;
 sunLight.shadow.camera.near = 10;
-sunLight.shadow.camera.far = 500;
+sunLight.shadow.camera.far = 1000;
 sunLight.shadow.camera.left = -100;
 sunLight.shadow.camera.right = 100;
 sunLight.shadow.camera.top = 100;
 sunLight.shadow.camera.bottom = -100;
-sunLight.shadow.bias = -0.000001; // Reduce shadow acne
+sunLight.shadow.bias = -0.0001;
 sunLight.shadow.camera.updateProjectionMatrix();
 
 scene.add(sunLight);
 
-const hemiColor = new THREE.HemisphereLight(0xddeeff, 0x444422, 0.6); // Sky / ground subtle tone
+const hemiColor = new THREE.HemisphereLight(0xddeeff, 0x444422, 3);
 scene.add(hemiColor);
 
 
@@ -150,16 +155,41 @@ scene.add(sky);
 
 buildWorld(scene)
 
+const loader = new GLTFLoader();
+loader.load(
+    'maps/map.glb', // Path to the GLB file
+    (gltf) => {
+        const map = gltf.scene;
+        map.position.set(0, -5, 0);
+        map.scale.set(25, 25, 25);
+        scene.add(map);
+        console.log('Map loaded successfully');
+
+        map.traverse((child) => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+    },
+    (xhr) => {
+        console.log(`Map loading: ${(xhr.loaded / xhr.total) * 100}% loaded`);
+    },
+    (error) => {
+        console.error('An error occurred while loading the map:', error);
+    }
+);
+
 const floorMesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(200, 200),
+    new THREE.PlaneGeometry(300, 300),
     new THREE.MeshLambertMaterial({
-        color: 'burlywood',
-        side: THREE.DoubleSide
+
     }),
     new THREE.ShadowMaterial({ opacity: 0.2 })
 );
 floorMesh.rotation.x = -Math.PI / 2;
-floorMesh.position.y = -5;
+floorMesh.position.set(-60, -5, -10);
+floorMesh.visible = false;
 floorMesh.receiveShadow = true;
 floorMesh.material.polygonOffset = true;
 floorMesh.material.polygonOffsetFactor = 1; // Adjust as needed
@@ -237,7 +267,6 @@ function removeUnit(unit) {
             }
         }
 
-        // Remove selection box
         const selectionBox = unit.hoverableObjects.find(obj => obj.userData.isSelectionBox);
         if (selectionBox) {
             scene.remove(selectionBox);
@@ -647,7 +676,6 @@ function handleObjectClick(position, object) {
 
     const sideMenu = document.getElementById('side-menu');
 
-    // Clean up previous selection
     if (selectedObject) {
         if (selectedObject.userData && selectedObject.userData.unit) {
             const previousUnit = selectedObject.userData.unit;
@@ -662,7 +690,6 @@ function handleObjectClick(position, object) {
         }
     }
 
-    // Find clicked unit
     const clickedUnit = units.find(unit => {
         if (!unit.mesh) return false;
         let current = object;
@@ -673,7 +700,6 @@ function handleObjectClick(position, object) {
         return false;
     });
 
-    // If clicked on a unit, show menu and range circle
     if (clickedUnit) {
         showUnitMenu(clickedUnit);
         selectedObject = clickedUnit.mesh;
@@ -683,7 +709,6 @@ function handleObjectClick(position, object) {
         return;
     }
 
-    // If clicked elsewhere, clean up
     sideMenu.style.display = 'none';
     units.forEach(unit => {
         if (unit.rangeCircle) {
@@ -752,6 +777,39 @@ function setUnitLevel(unitIndex, newLevel) {
 }
 
 initRaycasting(scene, camera, floorMesh, hoverableObjects, handleObjectClick, units);
+
+const dayDuration = 120;
+let timeOfDay = 0;
+
+function updateDayNightCycle(deltaTime) {
+    timeOfDay += deltaTime / dayDuration;
+    if (timeOfDay > 1) timeOfDay -= 1;
+
+    const sunIntensity = Math.max(0.3, Math.sin(timeOfDay * Math.PI * 2));
+
+    const skyColor = new THREE.Color().lerpColors(
+        new THREE.Color(0x111144), // Brighter night color
+        new THREE.Color(0x87ceeb), // Day
+        sunIntensity
+    );
+
+    // Update sun
+    sunLight.intensity = sunIntensity;
+    sunLight.position.set(
+        Math.cos(timeOfDay * Math.PI * 2) * 300,
+        Math.sin(timeOfDay * Math.PI * 2) * 450,
+        300
+    );
+    sun.position.copy(sunLight.position);
+
+
+
+    // Update environment
+    hemiColor.intensity = sunIntensity * 0.6;
+    scene.background = skyColor;
+    bloomPass.strength = 1.5 * sunIntensity + 0.2;
+}
+
 const speedFactor = 1;
 let frameCount = 0;
 let lastFPSUpdate = performance.now();
@@ -762,8 +820,12 @@ function draw() {
     const currentTime = performance.now();
     const deltaTime = (currentTime - lastFrame) * 0.001;
     lastFrame = currentTime;
-
     frameCount++;
+
+
+    if (frameCount % 2 === 0) {
+        updateDayNightCycle(deltaTime);
+    }
     if (currentTime - lastFPSUpdate >= 1000) {
         currentFPS = frameCount;
         document.getElementById('fps').textContent = `FPS: ${currentFPS}`;
@@ -772,13 +834,9 @@ function draw() {
     }
 
     const scaledDelta = deltaTime * speedFactor;
-
-    // Update enemies
     for (let id in enemies) {
         enemies[id].update(scaledDelta, onEnemyReachedEnd, camera);
     }
-
-    // Update units
     units.forEach(unit => {
         if (unit && unit.mesh && unit.mesh.visible) {
             const nearbyEnemies = Object.values(enemies).filter(enemy => {
@@ -794,7 +852,6 @@ function draw() {
 
     updateCamera(scene);
     cleanupScene();
-    renderer.render(scene, camera);
     composer.render();
 
     DamageText.updateAll();
@@ -817,14 +874,11 @@ function setSize() {
     const width = window.innerWidth;
     const height = window.innerHeight;
 
-    // Update camera
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
 
-    // Update renderer and
     renderer.setSize(width, height);
 
-    // Reset pixel ratio if needed
     const pixelRatio = window.devicePixelRatio > 1 ? 2 : 1;
     renderer.setPixelRatio(pixelRatio);
 }

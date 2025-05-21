@@ -18,6 +18,7 @@
 
 to damage invisible enemies you need a tower with the invisible trait. The same goes for steal where the tower needs penetration trait. Magic enemies reduce damage from non-magic towers, and magic towers deal normal damage to magic enemies.
 
+
 # Technologies Used
 - Three.js for 3D rendering
 - JavaScript 
@@ -88,6 +89,10 @@ to damage invisible enemies you need a tower with the invisible trait. The same 
 - [x] Game balance adjustments
 - [x] Performance optimization
 - [x] UI/UX improvements
+- [ ] show if unit is under development / not finished
+- [ ] exsplane about number of units and limitations
+- [ ] use color for established practices to comunicte unavaible functionality
+- [ ] craeate a game intro with a brif explenation of the game
 
 # Log
 ## log 8 - polish, bug fixes and 3D design
