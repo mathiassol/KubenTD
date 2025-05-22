@@ -64,6 +64,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.frustumCulled = true;
 
 document.body.appendChild(renderer.domElement);
 
@@ -74,15 +75,16 @@ const pauseMenuHTML = `
         <div class="preference-section">
             <h3>Graphics</h3>
             <div class="preference-item">
-                <label>Bloom Effect</label>
-                <input type="checkbox" id="bloom-toggle" checked>
+                <label>postprocessing (heavy GPU load)</label>
+                <input type="checkbox" id="postProcessing-toggle" checked>
             </div>
             <div class="preference-item">
                 <label>Shadow Quality</label>
                 <select id="shadow-quality">
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
-                    <option value="high">High</option>
+                    <option value="high" selected>High</option>
+                    <option value="extreme" >extreme</option>
                 </select>
             </div>
                <div class="preference-item">
@@ -113,7 +115,6 @@ const pauseMenuHTML = `
 </div>
 `;
 
-// Add this CSS to your stylesheet
 const pauseMenuCSS = `
 .pause-menu {
     position: fixed;
@@ -206,9 +207,9 @@ const pauseMenuCSS = `
 `;
 
 let isPaused = false;
+let postProcessingEnabled = true;
 
 function initPauseMenu() {
-    // Insert HTML and CSS
     document.body.insertAdjacentHTML('beforeend', pauseMenuHTML);
     const style = document.createElement('style');
     style.textContent = pauseMenuCSS;
@@ -216,7 +217,7 @@ function initPauseMenu() {
 
     const pauseMenu = document.getElementById('pause-menu');
     const resumeButton = document.getElementById('resume-button');
-    const bloomToggle = document.getElementById('bloom-toggle');
+    const postProcessingToggle = document.getElementById('postProcessing-toggle');
     const shadowQuality = document.getElementById('shadow-quality');
     const dayNightToggle = document.getElementById('daynight-toggle');
     const masterVolume = document.getElementById('master-volume');
@@ -231,28 +232,48 @@ function initPauseMenu() {
 
     resumeButton.addEventListener('click', togglePause);
 
-    // Preference handlers
-    bloomToggle.addEventListener('change', (e) => {
-        bloomPass.enabled = e.target.checked;
+    postProcessingToggle.addEventListener('change', (e) => {
+        postProcessingEnabled = e.target.checked;
     });
 
     shadowQuality.addEventListener('change', (e) => {
-        switch(e.target.value) {
+        switch (e.target.value) {
             case 'low':
-                sunLight.shadow.mapSize.width = 1024;
-                sunLight.shadow.mapSize.height = 1024;
+                sunLight.shadow.mapSize.width = 206;
+                sunLight.shadow.mapSize.height = 206;
+                moonLight.shadow.mapSize.width = 206;
+                moonLight.shadow.mapSize.height = 206;
                 break;
             case 'medium':
-                sunLight.shadow.mapSize.width = 2048;
-                sunLight.shadow.mapSize.height = 2048;
+                sunLight.shadow.mapSize.width = 512;
+                sunLight.shadow.mapSize.height = 512;
+                moonLight.shadow.mapSize.width = 512;
+                moonLight.shadow.mapSize.height = 512;
                 break;
             case 'high':
+                sunLight.shadow.mapSize.width = 1024;
+                sunLight.shadow.mapSize.height = 1024;
+                moonLight.shadow.mapSize.width = 1024;
+                moonLight.shadow.mapSize.height = 1024;
+                break;
+            case 'extreme':
                 sunLight.shadow.mapSize.width = 4096;
                 sunLight.shadow.mapSize.height = 4096;
+                moonLight.shadow.mapSize.width = 4096;
+                moonLight.shadow.mapSize.height = 4096;
                 break;
         }
-        sunLight.shadow.map.dispose();
-        sunLight.shadow.map = null;
+
+        if (sunLight.shadow.map) {
+            sunLight.shadow.map.dispose();
+            sunLight.shadow.map = null;
+        }
+        if (moonLight.shadow.map) {
+            moonLight.shadow.map.dispose();
+            moonLight.shadow.map = null;
+        }
+
+        renderer.shadowMap.needsUpdate = true;
     });
 
 
@@ -266,7 +287,6 @@ function initPauseMenu() {
 
     masterVolume.addEventListener('input', (e) => {
         const volume = e.target.value / 100;
-        // Implement master volume control
     });
 
     sfxVolume.addEventListener('input', (e) => {
@@ -282,18 +302,24 @@ function togglePause() {
 
     if (isPaused) {
         pauseMenu.classList.remove('hidden');
-        // Pause game logic
-        // Stop animations, timers, etc.
     } else {
         pauseMenu.classList.add('hidden');
-        // Resume game logic
-        // Resume animations, timers, etc.
     }
 }
 
-
-// Initialize pause menu
 initPauseMenu();
+
+document.addEventListener('DOMContentLoaded', () => {
+    const loadingScreen = document.getElementById('loading-screen');
+    const loadingBar = document.getElementById('loading-bar');
+
+    setTimeout(() => {
+        loadingScreen.style.opacity = '0';
+        setTimeout(() => {
+            loadingScreen.style.display = 'none';
+        }, 500);
+    }, 3000);
+});
 
 window.addEventListener('resize', () => {
     const width = window.innerWidth;
@@ -354,7 +380,7 @@ const outlinePass = new OutlinePass(
     scene,
     camera
 );
-outlinePass.edgeStrength = 2.5;
+outlinePass.edgeStrength = 1;
 outlinePass.edgeGlow = 0.0;
 outlinePass.edgeThickness = 1.0;
 outlinePass.pulsePeriod = 0;
@@ -367,7 +393,6 @@ const sun = new THREE.Mesh(
     new THREE.MeshBasicMaterial({ color: 0xffffbb })
 );
 sun.position.set(200, 300, 200);
-sun.castShadow = true;
 scene.add(sun);
 
 const dayDuration = 20;
@@ -378,26 +403,25 @@ const moon = new THREE.Mesh(
     new THREE.MeshBasicMaterial({ color: 0xbbccff })
 );
 moon.position.set(-200, -300, -200);
-moon.castShadow = true;
 scene.add(moon);
 
 const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
-    0.5, // strength
-    0.4, // radius
-    1.5 // threshold
+    0, // strength
+    0, // radius
+    1 // threshold
 );
 composer.addPass(bloomPass);
 
 const sunLight = new THREE.DirectionalLight(0xfff2cc, 0.1);
 sunLight.position.copy(sun.position)
 sunLight.castShadow = true;
-sunLight.shadow.mapSize.width = 2028;
-sunLight.shadow.mapSize.height = 2048;
-sunLight.shadow.radius = 4;
+sunLight.shadow.mapSize.width = 514;
+sunLight.shadow.mapSize.height = 514;
+sunLight.shadow.radius = 1;
 sunLight.shadow.autoUpdate = true;
 sunLight.shadow.camera.near = 10;
-sunLight.shadow.camera.far = 3000;
+sunLight.shadow.camera.far = 1500;
 sunLight.shadow.camera.left = -100;
 sunLight.shadow.camera.right = 100;
 sunLight.shadow.camera.top = 100;
@@ -410,19 +434,24 @@ scene.add(sunLight);
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.05);
 scene.add(ambientLight);
 
-const watergeo = new THREE.PlaneGeometry(2000, 2000, 100, 100);
+const watergeo = new THREE.PlaneGeometry(2000, 2000, 30, 30);
 watergeo.rotateX(-Math.PI / 2);
 
 const waterShaderMaterial = new THREE.ShaderMaterial({
     uniforms: {
         uColor: { value: new THREE.Color(0x06ad9b) },
-        uFadeDistance: { value: 1000.0 } // Adjust fade distance
+        uTime: { value: 0.0 }, // Add time uniform
+        uFadeDistance: { value: 850.0 }
     },
     vertexShader: `
+        uniform float uTime;
         varying vec3 vPosition;
         void main() {
             vPosition = position;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            vec3 newPosition = position;
+            newPosition.y += sin(position.x * 0.1 + uTime) * 0.5;
+            newPosition.y += sin(position.z * 0.1 + uTime) * 0.5;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
         }
     `,
     fragmentShader: `
@@ -448,6 +477,7 @@ function updateWaterAnimation(deltaTime) {
     const waveScaling = 30;
     const time = clock.getElapsedTime();
 
+
     for (let i = 0; i < watergeo.attributes.position.count; i++) {
         const x = watergeo.attributes.position.getX(i);
         const z = watergeo.attributes.position.getZ(i);
@@ -463,7 +493,6 @@ function updateWaterAnimation(deltaTime) {
     watergeo.attributes.position.needsUpdate = true;
 }
 
-
 scene.background = new THREE.Color(0x87ceeb);
 
 const skyGeo = new THREE.SphereGeometry(5000, 25, 25);
@@ -471,33 +500,55 @@ const skyMat = new THREE.MeshBasicMaterial({ color: 0x87ceeb, side: THREE.BackSi
 const sky = new THREE.Mesh(skyGeo, skyMat);
 scene.add(sky);
 
+
+
 buildWorld(scene)
 
 const loader = new GLTFLoader();
-
 loader.load(
-    'maps/map.glb',
+    'maps/map-ground.glb',
     (gltf) => {
         const map = gltf.scene;
         map.position.set(0, -14.3, 0);
         map.scale.set(25, 25, 25);
         scene.add(map);
-        console.log('Map loaded successfully');
+        console.log('Map ground loaded successfully');
 
         map.traverse((child) => {
             if (child.isMesh) {
-                child.castShadow = true;
-                child.receiveShadow = true;
-
-
+                child.receiveShadow = true; // Ensure ground receives shadows
             }
         });
     },
     (xhr) => {
-        console.log(`Map loading: ${(xhr.loaded / xhr.total) * 100}% loaded`);
+        console.log(`Map ground loading: ${(xhr.loaded / xhr.total) * 100}% loaded`);
     },
     (error) => {
-        console.error('An error occurred while loading the map:', error);
+        console.error('An error occurred while loading the map ground:', error);
+    }
+);
+
+loader.load(
+    'maps/map-top.glb',
+    (gltf) => {
+        const map = gltf.scene;
+        map.position.set(0, -14.3, 0);
+        map.scale.set(25, 25, 25);
+        scene.add(map);
+        console.log('Map top loaded successfully');
+
+        map.traverse((child) => {
+            if (child.isMesh) {
+                child.castShadow = true; // Ensure top casts shadows
+                child.receiveShadow = true; // Ensure top receives shadows
+            }
+        });
+    },
+    (xhr) => {
+        console.log(`Map top loading: ${(xhr.loaded / xhr.total) * 100}% loaded`);
+    },
+    (error) => {
+        console.error('An error occurred while loading the map top:', error);
     }
 );
 
@@ -1113,7 +1164,7 @@ window.addEventListener('mousemove', (event) => {
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(hoverableObjects, true);
+    const intersects = raycaster.intersectObjects(hoverableObjects.slice(0, 50), true);
 
     if (intersects.length > 0) {
         handleObjectHover(intersects[0].object);
@@ -1130,17 +1181,17 @@ initRaycasting(scene, camera, floorMesh, hoverableObjects, (position, object) =>
 const moonLight = new THREE.DirectionalLight(0xfff2cc, 0.1);
 moonLight.position.copy(moon.position)
 moonLight.castShadow = true;
-moonLight.shadow.mapSize.width = 2028;
-moonLight.shadow.mapSize.height = 2048;
-moonLight.shadow.radius = 4;
+moonLight.shadow.mapSize.width = 516;
+moonLight.shadow.mapSize.height = 516;
+moonLight.shadow.radius = 2;
 moonLight.shadow.autoUpdate = true;
-moonLight.shadow.camera.near = 10;
-moonLight.shadow.camera.far = 3000;
-moonLight.shadow.camera.left = -100;
-moonLight.shadow.camera.right = 100;
-moonLight.shadow.camera.top = 100;
-moonLight.shadow.camera.bottom = -100;
-moonLight.shadow.bias = -0.00005;
+moonLight.shadow.camera.near = 1;
+moonLight.shadow.camera.far = 1000;
+moonLight.shadow.camera.left = -130;
+moonLight.shadow.camera.right = 130;
+moonLight.shadow.camera.top = 130;
+moonLight.shadow.camera.bottom = -130;
+moonLight.shadow.bias = -0.00001;
 moonLight.shadow.camera.updateProjectionMatrix();
 scene.add(moonLight);
 
@@ -1182,7 +1233,7 @@ function updateDayNightCycle(deltaTime) {
     } else if (cycleMode === 'day') {
         timeOfDay = 0.20; // Midday
     } else if (cycleMode === 'night') {
-        timeOfDay = 0.95; // Midnight
+        timeOfDay = 0.86; // Midnight
     }
 
     const angle = timeOfDay * Math.PI * 2;
@@ -1233,6 +1284,9 @@ let frameCount = 0;
 let lastFPSUpdate = performance.now();
 let lastFrame = performance.now();
 let currentFPS = 0;
+let waterUpdateTimer = 0;
+
+
 
 function draw() {
     const currentTime = performance.now();
@@ -1241,12 +1295,13 @@ function draw() {
     frameCount++;
 
 
-
+    waterUpdateTimer += deltaTime;
+    if (waterUpdateTimer >= 0.1) {
+        updateWaterAnimation(deltaTime);
+        waterUpdateTimer = 0;
+    }
     if (frameCount % 2 === 0) {
         updateDayNightCycle(deltaTime);
-
-        updateWaterAnimation(deltaTime);
-
     }
     if (currentTime - lastFPSUpdate >= 1000) {
         currentFPS = frameCount;
@@ -1274,7 +1329,11 @@ function draw() {
 
     updateCamera(scene);
     cleanupScene();
-    composer.render();
+    if (postProcessingEnabled === true) {
+        composer.render();
+    }else{
+        renderer.render(scene, camera);
+    }
 
     DamageText.updateAll();
 }
@@ -1287,10 +1346,7 @@ function animate() {
 }
 animate();
 
-function logMemoryUsage() {
-    console.log(renderer.info.memory);
-}
-setInterval(logMemoryUsage, 5000);
+
 
 export { hoverableObjects };
 
