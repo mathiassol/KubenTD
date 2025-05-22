@@ -36,8 +36,14 @@ export default class Enemy {
         });
         this.enemy = new THREE.Mesh(this.enemyGeometry, this.enemyMaterial);
 
-        if (this.type === 'air') {
-            this.enemy.position.set(0, 10, 0);
+        if (this.path && this.path.length > 0) {
+            const startPosition = this.path[0].clone();
+            if (this.type === 'air') {
+                startPosition.y += 10;
+            }
+            this.enemy.position.copy(startPosition);
+        } else {
+            console.warn('Path is empty or undefined. Enemy position set to (0, 0, 0).');
         }
         this.scene.add(this.enemy);
 

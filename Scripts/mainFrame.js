@@ -407,9 +407,9 @@ scene.add(moon);
 
 const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
-    0, // strength
-    0, // radius
-    1 // threshold
+    0,
+    0,
+    1
 );
 composer.addPass(bloomPass);
 
@@ -440,7 +440,7 @@ watergeo.rotateX(-Math.PI / 2);
 const waterShaderMaterial = new THREE.ShaderMaterial({
     uniforms: {
         uColor: { value: new THREE.Color(0x06ad9b) },
-        uTime: { value: 0.0 }, // Add time uniform
+        uTime: { value: 0.0 },
         uFadeDistance: { value: 850.0 }
     },
     vertexShader: `
@@ -469,7 +469,7 @@ const waterShaderMaterial = new THREE.ShaderMaterial({
 
 const water = new THREE.Mesh(watergeo, waterShaderMaterial)
 
-water.position.set(0, -13, 0);
+water.position.set(0, -14, 0);
 water.receiveShadow = true;
 scene.add(water);
 
@@ -509,14 +509,14 @@ loader.load(
     'maps/map-ground.glb',
     (gltf) => {
         const map = gltf.scene;
-        map.position.set(0, -14.3, 0);
+        map.position.set(0, -14.9, 0);
         map.scale.set(25, 25, 25);
         scene.add(map);
         console.log('Map ground loaded successfully');
 
         map.traverse((child) => {
             if (child.isMesh) {
-                child.receiveShadow = true; // Ensure ground receives shadows
+                child.receiveShadow = true;
             }
         });
     },
@@ -532,15 +532,15 @@ loader.load(
     'maps/map-top.glb',
     (gltf) => {
         const map = gltf.scene;
-        map.position.set(0, -14.3, 0);
+        map.position.set(0, -14.9, 0);
         map.scale.set(25, 25, 25);
         scene.add(map);
         console.log('Map top loaded successfully');
 
         map.traverse((child) => {
             if (child.isMesh) {
-                child.castShadow = true; // Ensure top casts shadows
-                child.receiveShadow = true; // Ensure top receives shadows
+                child.castShadow = true;
+                child.receiveShadow = true;
             }
         });
     },
@@ -579,16 +579,7 @@ const material = new THREE.MeshPhysicalMaterial({
     clearcoat: 1,
     clearcoatRoughness: 1,
 });
-const boxMesh = new THREE.Mesh(geometry, material);
-boxMesh.position.z = 10;
-boxMesh.castShadow = true;
-boxMesh.receiveShadow = true;
 
-scene.add(boxMesh);
-
-const boxMesh2 = new THREE.Mesh(geometry, material);
-boxMesh2.position.z = -10;
-scene.add(boxMesh2);
 
 
 function cleanupScene() {
@@ -656,7 +647,7 @@ function removeUnit(unit) {
     }
 }
 
-const hoverableObjects = [boxMesh2, boxMesh];
+const hoverableObjects = [];
 
 function createUnit(x, y, z, type) {
     const unitCost = unitConfig[type].price;
@@ -725,11 +716,19 @@ export {
 const clock = new THREE.Clock();
 
 const path = [
-    new THREE.Vector3(0, 0, 0),
-    new THREE.Vector3(20, 0, 20),
-    new THREE.Vector3(40, 0, 0),
-    new THREE.Vector3(60, 0, -20),
-    new THREE.Vector3(80, 0, 0)
+    new THREE.Vector3(-63.60, 0, 61.47),
+    new THREE.Vector3(-63.06, 0, 26.15),
+    new THREE.Vector3(-13.43, 0, 25.67),
+    new THREE.Vector3(-12.20, 0, 74.21),
+    new THREE.Vector3(34.69, 0, 71.29),
+    new THREE.Vector3(39.90, 0, -24.54),
+    new THREE.Vector3(87.04, 0, -28.24),
+    new THREE.Vector3(86.72, 0, -49.15),
+    new THREE.Vector3(-36.83, 0, -53.82),
+    new THREE.Vector3(-37.33, 0, -100.13),
+    new THREE.Vector3(13.01, 0, -100.60),
+    new THREE.Vector3(11.60, 0, -26.48),
+    new THREE.Vector3(-59.73, 0, -26.09)
 ];
 let waveCount = 0;
 let enemies = {};
@@ -793,13 +792,47 @@ function spawnEnemy(path, delay, speed, health, type, invisible, magic, steal, c
 }
 
 let waveInProgress = false;
-let allEnemiesDefeated = true;
+const waveInfoElement = document.getElementById('wave-info');
+
+function updateWaveInfo() {
+    const totalWaves = waveConfig.length;
+    waveInfoElement.textContent = `Wave: ${waveCount + 1}/${totalWaves}`;
+}
+
+const sideMenu = document.getElementById('side-menu');
+const commanderContainer = document.getElementById('commander-container');
+
+const observer = new MutationObserver(() => {
+    if (sideMenu.style.display === 'block') {
+        commanderContainer.style.right = '260px';
+    } else {
+        commanderContainer.style.right = '20px';
+    }
+});
+
+observer.observe(sideMenu, { attributes: true, attributeFilter: ['style'] });
+
+
+function showCommander(message) {
+    const commanderContainer = document.getElementById('commander-container');
+    const chatBubble = document.getElementById('chat-bubble');
+
+    chatBubble.textContent = message;
+    commanderContainer.classList.remove('hidden');
+
+    setTimeout(() => {
+        commanderContainer.classList.add('hidden');
+    }, 5000);
+}
+
 
 function spawnWave() {
     if (waveInProgress) {
         showNotification("Wave already in progress!");
         return;
     }
+    const commanderContainer = document.getElementById('commander-container');
+    commanderContainer.classList.add('hidden');
 
     if (Object.keys(enemies).length > 0) {
         showNotification("Defeat all enemies before starting next wave!");
@@ -812,7 +845,14 @@ function spawnWave() {
         return;
     }
 
+    if (waveCount+1 === 5) {
+        showCommander("Brace yourselves! Wave 5 is here!");
+    } else if (waveCount+1 === 10) {
+        showCommander("Wave 10! Stay strong, commander!");
+    }
+
     waveInProgress = true;
+    updateWaveInfo();
     let enemiesSpawned = 0;
     const totalEnemies = waveData.length;
 
@@ -844,6 +884,7 @@ const startWaveButton = document.getElementById("start-wave-btn")
 startWaveButton.addEventListener('click', () => {
     spawnWave()
 });
+updateWaveInfo();
 
 function handleKeyPress(event) {
     if (event.key === 'Shift' && event.location === 1) {
@@ -1211,9 +1252,17 @@ function createStars() {
     const positions = new Float32Array(starCount * 3);
 
     for (let i = 0; i < starCount; i++) {
-        positions[i * 3] = (Math.random() - 0.5) * 5000; // X
-        positions[i * 3 + 1] = Math.random() * 2000; // Y
-        positions[i * 3 + 2] = (Math.random() - 0.5) * 5000; // Z
+        let x, y, z, distance;
+        do {
+            x = (Math.random() - 0.5) * 5000; // X
+            y = Math.random() * 2000; // Y
+            z = (Math.random() - 0.5) * 5000; // Z
+            distance = Math.sqrt(x * x + y * y + z * z);
+        } while (distance < 600);
+
+        positions[i * 3] = x;
+        positions[i * 3 + 1] = y;
+        positions[i * 3 + 2] = z;
     }
 
     starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -1286,7 +1335,47 @@ let lastFrame = performance.now();
 let currentFPS = 0;
 let waterUpdateTimer = 0;
 
+window.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
 
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(floorMesh);
+
+    if (intersects.length > 0) {
+        const point = intersects[0].point;
+        controls.target.set(point.x, point.y, point.z);
+        controls.update();
+    }
+});
+
+const keybinds = [
+    { icon: '\uE0C0', text: 'Center Cam' },
+    { icon: '\uE0E8', text: 'move camera' },
+];
+
+const keybindContainer = document.getElementById('keybind-showcase');
+
+keybinds.forEach(keybind => {
+    const keybindElement = document.createElement('div');
+    keybindElement.className = 'keybind';
+
+    const iconElement = document.createElement('span');
+    iconElement.className = 'icon';
+    iconElement.textContent = keybind.icon;
+
+    const textElement = document.createElement('span');
+    textElement.className = 'text';
+    textElement.textContent = keybind.text;
+
+    keybindElement.appendChild(iconElement);
+    keybindElement.appendChild(textElement);
+    keybindContainer.appendChild(keybindElement);
+});
+
+let gameSpeed = 1;
 
 function draw() {
     const currentTime = performance.now();
@@ -1312,7 +1401,7 @@ function draw() {
 
     const scaledDelta = deltaTime * speedFactor;
     for (let id in enemies) {
-        enemies[id].update(scaledDelta, onEnemyReachedEnd, camera);
+        enemies[id].update(deltaTime * gameSpeed, onEnemyReachedEnd, camera);
     }
     units.forEach(unit => {
         if (unit && unit.mesh && unit.mesh.visible) {
@@ -1323,8 +1412,18 @@ function draw() {
                 }
                 return false;
             });
-            unit.update(nearbyEnemies, deltaTime);
+            unit.update(nearbyEnemies, deltaTime * gameSpeed);
         }
+    });
+
+    const speedButtons = document.querySelectorAll('.speed-btn');
+    speedButtons.forEach(btn => {
+        btn.addEventListener('click', function () {
+            playClickSound();
+            speedButtons.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            gameSpeed = parseFloat(this.getAttribute('data-speed'));
+        });
     });
 
     updateCamera(scene);

@@ -34,6 +34,11 @@
             margin: 0;
             overflow: hidden;
             font-family: 'Arial', sans-serif;
+
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
 
         #three-canvas {
@@ -45,7 +50,6 @@
             height: 100%;
         }
 
-        /* Game Status Panel */
         #game-status-panel {
             position: absolute;
             top: 10px;
@@ -71,7 +75,6 @@
             margin-bottom: 8px;
         }
 
-        /* Health Bar */
         #health-bar-container {
             position: absolute;
             top: 10px;
@@ -98,7 +101,6 @@
             text-shadow: 1px 1px 2px black;
         }
 
-        /* Wave Control */
         #wave-control {
             position: absolute;
             bottom: 20px;
@@ -344,7 +346,6 @@
             }
         }
 
-        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -397,7 +398,6 @@
             background-color: #e0e0e0;
         }
 
-        /* Fast Forward Button */
         #fast-forward {
             position: absolute;
             bottom: 80px;
@@ -497,6 +497,84 @@
                 width: 100%;
             }
         }
+        #commander-container {
+            position: absolute;
+            bottom: 0;
+            right: 20px;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        #commander-container.hidden {
+            display: none;
+        }
+
+        #commander-img {
+            width: 26vw;
+            height: auto;
+        }
+
+        #chat-bubble {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 1vw;
+            max-width: 18vw;
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            position: relative;
+            text-align: center;
+        }
+
+        #chat-bubble::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 10px 10px 0 10px;
+            border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+        }
+        #keybind-showcase {
+            position: absolute;
+            top: 50%;
+            left: 10px;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10;
+            font-size: 16px;
+            color: white;
+        }
+        .keybind {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .keybind .icon {
+            font-family: 'Input', sans-serif;
+            font-size: 80px;
+            color: darkorange;
+
+        }
+        .keybind .text {
+            font-family: inherit;
+            font-size: 20px;
+            transform: translateY(10px);
+        }
+        @font-face {
+            font-family: 'Input';
+            src: url('assets/input.ttf') format('truetype');
+        }
     </style>
 </head>
 <body>
@@ -511,8 +589,13 @@
 <div id="game-status-panel">
     <div id="wave-info">Wave: 1/30</div>
     <div id="cash-balance">Cash: $300</div>
-    <div id="enemies-left">Enemies: 0/20</div>
-    <div id="score">Score: 0</div>
+</div>
+
+<div id="keybind-showcase"></div>
+
+<div id="commander-container" class="">
+    <img id="commander-img" src="assets/commander.png" alt="Commander">
+    <div id="chat-bubble">Raiders are coming! Place your first unit and press START!!!</div>
 </div>
 
 <div id="health-bar-container">
