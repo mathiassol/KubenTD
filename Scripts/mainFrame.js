@@ -95,6 +95,10 @@ const pauseMenuHTML = `
                     <option value="cycle">Day/Night Cycle</option>
                 </select>
             </div>
+            <div class="preference-item">
+                <label>Brightness</label>
+                <input type="range" id="brightness-scale" min="0.5" max="2" step="0.1" value="1">
+            </div>
         </div>
         <div class="preference-section">
             <h3>Audio</h3>
@@ -222,6 +226,11 @@ function initPauseMenu() {
     const dayNightToggle = document.getElementById('daynight-toggle');
     const masterVolume = document.getElementById('master-volume');
     const sfxVolume = document.getElementById('sfx-volume');
+    const brightnessScale = document.getElementById('brightness-scale');
+    brightnessScale.addEventListener('input', (e) => {
+        const brightness = parseFloat(e.target.value);
+        renderer.toneMappingExposure = brightness;
+    });
 
     // Event handlers
     window.addEventListener('keydown', (e) => {
@@ -441,7 +450,7 @@ const waterShaderMaterial = new THREE.ShaderMaterial({
     uniforms: {
         uColor: { value: new THREE.Color(0x06ad9b) },
         uTime: { value: 0.0 },
-        uFadeDistance: { value: 850.0 }
+        uFadeDistance: { value: 450.0 }
     },
     vertexShader: `
         uniform float uTime;
@@ -460,7 +469,8 @@ const waterShaderMaterial = new THREE.ShaderMaterial({
         varying vec3 vPosition;
         void main() {
             float distanceFromCenter = length(vPosition.xz);
-            float alpha = 1.0 - smoothstep(0.0, uFadeDistance, distanceFromCenter);
+            float alpha = 1.0 - smoothstep(0.0, uFadeDistance * 2.0, distanceFromCenter); 
+            alpha = pow(alpha, 1.5); 
             gl_FragColor = vec4(uColor, alpha);
         }
     `,
@@ -600,7 +610,9 @@ function updateHealthBar() {
     healthBar.style.width = `${playerHealth}%`;
     healthBar.style.backgroundColor = playerHealth > 50 ? 'green' : playerHealth > 20 ? 'yellow' : 'red';
     healthBar.innerText = `${playerHealth}/100`;
-    if (playerHealth <= 0) {}
+    if (playerHealth <= 0) {
+        showWinLoseScreen(false);
+    }
 }
 updateHealthBar()
 const units = [];
@@ -849,6 +861,12 @@ function spawnWave() {
         showCommander("Brace yourselves! Wave 5 is here!");
     } else if (waveCount+1 === 10) {
         showCommander("Wave 10! Stay strong, commander!");
+    } else if (waveCount+1 === 30) {
+        showCommander("you did it!");
+        setInterval(() => {
+            showWinLoseScreen(true)
+        }, 3000);
+
     }
 
     waveInProgress = true;
@@ -1374,6 +1392,16 @@ keybinds.forEach(keybind => {
     keybindElement.appendChild(textElement);
     keybindContainer.appendChild(keybindElement);
 });
+
+function showWinLoseScreen(isWin) {
+    const winLoseScreen = document.getElementById('win-lose-screen');
+    const winLoseText = document.getElementById('win-lose-text');
+
+    winLoseText.textContent = isWin ? 'You Win!' : 'You Lose!';
+    winLoseText.style.color = isWin ? 'gold' : 'red';
+
+    winLoseScreen.classList.remove('hidden');
+}
 
 let gameSpeed = 1;
 

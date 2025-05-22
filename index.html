@@ -575,6 +575,37 @@
             font-family: 'Input';
             src: url('assets/input.ttf') format('truetype');
         }
+        #win-lose-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        #win-lose-screen.hidden {
+            display: none;
+        }
+
+        #banner-image {
+            width: 35%;
+            height: auto;
+        }
+
+        #win-lose-text {
+            position: absolute;
+            color: white;
+            font-size: 3vw;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 2px 2px 5px black;
+        }
     </style>
 </head>
 <body>
@@ -592,6 +623,11 @@
 </div>
 
 <div id="keybind-showcase"></div>
+
+<div id="win-lose-screen" class="hidden">
+    <img src="assets/banner.png" alt="Banner" id="banner-image">
+    <div id="win-lose-text"></div>
+</div>
 
 <div id="commander-container" class="">
     <img id="commander-img" src="assets/commander.png" alt="Commander">

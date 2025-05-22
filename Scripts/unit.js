@@ -81,7 +81,6 @@ export default class Unit {
             this.mesh.rotation.y = Math.PI / 2;
             this.mesh.userData.isUnit = true;
 
-            // Enable shadows for the model and all its children
             this.mesh.traverse((child) => {
                 if (child.isMesh) {
                     child.castShadow = true;
@@ -301,6 +300,19 @@ export default class Unit {
         circleMesh.rotation.x = -Math.PI / 2;
         circleMesh.position.y = -4.8;
         previewContainer.add(circleMesh);
+
+        // Add range preview
+        const rangeRadius = unitConfig[type].baseStats.range; // Get range from unitConfig
+        const rangeGeometry = new THREE.CircleGeometry(rangeRadius, 64);
+        const rangeMaterial = new THREE.MeshBasicMaterial({
+            color: 'green',
+            transparent: true,
+            opacity: 0.3
+        });
+        const rangeMesh = new THREE.Mesh(rangeGeometry, rangeMaterial);
+        rangeMesh.rotation.x = -Math.PI / 2;
+        rangeMesh.position.y = -4.7; // Slightly above the ground
+        previewContainer.add(rangeMesh);
 
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');

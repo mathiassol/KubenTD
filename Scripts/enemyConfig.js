@@ -5,7 +5,7 @@
 const easyWaveConfig = [
     // Wave 1 - Simple introduction with basic enemies
     [
-        {speed: 2, health: 50, type: 'ground', invisible: false, magic: false, steal: false, cash: 25},
+        {speed: 200, health: 500, type: 'ground', invisible: false, magic: false, steal: false, cash: 25},
         {speed: 2, health: 50, type: 'ground', invisible: false, magic: false, steal: false, cash: 25},
         {speed: 2, health: 50, type: 'ground', invisible: false, magic: false, steal: false, cash: 25},
     ],
