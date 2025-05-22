@@ -4,7 +4,9 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
 
+const noise = new Noise(Math.random());
 import {initRaycasting} from './raycasterUtils.js';
 import {buildWorld} from "./worldElements.js";
 
@@ -43,22 +45,255 @@ init()
 const canvas = document.querySelector('#three-canvas');
 const renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: false,
+    antialias: true,
     powerPreference: 'high-performance',
     context: canvas.getContext('webgl2', {
         powerPreference: 'high-performance',
-        desynchronized: true
+        desynchronized: true,
+        depth: true,
+        stencil: true
     })
 });
 
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio > 1 ? 2 : 1);
+const width = window.innerWidth;
+const height = window.innerHeight;
+
+renderer.setSize(width, height);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
 document.body.appendChild(renderer.domElement);
 
+const pauseMenuHTML = `
+<div id="pause-menu" class="pause-menu hidden">
+    <div class="pause-content">
+        <h2>Game Paused</h2>
+        <div class="preference-section">
+            <h3>Graphics</h3>
+            <div class="preference-item">
+                <label>Bloom Effect</label>
+                <input type="checkbox" id="bloom-toggle" checked>
+            </div>
+            <div class="preference-item">
+                <label>Shadow Quality</label>
+                <select id="shadow-quality">
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                </select>
+            </div>
+               <div class="preference-item">
+                <label>Time Cycle</label>
+                <select id="time-cycle">
+                    <option value="day">Always Day</option>
+                    <option value="night">Always Night</option>
+                    <option value="cycle">Day/Night Cycle</option>
+                </select>
+            </div>
+        </div>
+        <div class="preference-section">
+            <h3>Audio</h3>
+            <div class="preference-item">
+                <label>Master Volume</label>
+                <input type="range" id="master-volume" min="0" max="100" value="100">
+            </div>
+            <div class="preference-item">
+                <label>SFX Volume</label>
+                <input type="range" id="sfx-volume" min="0" max="100" value="100">
+            </div>
+        </div>
+        <div class="button-group">
+            <button id="resume-button">Resume Game</button>
+            <button id="main-menu-button">Main Menu</button>
+        </div>
+    </div>
+</div>
+`;
+
+// Add this CSS to your stylesheet
+const pauseMenuCSS = `
+.pause-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.pause-menu.hidden {
+    display: none;
+}
+
+.pause-content {
+    background: linear-gradient(145deg, #323232, #252525);
+    padding: 2.5rem;
+    border-radius: 16px;
+    min-width: 380px;
+    color: white;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.preference-section {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.preference-section h3 {
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    color: #4a9eff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.preference-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0.8rem 0;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.preference-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.button-group {
+    display: flex;
+    justify-content: center;
+    gap: 1.2rem;
+    margin-top: 2.5rem;
+}
+
+.pause-menu button {
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: linear-gradient(145deg, #4a9eff, #2e7fd9);
+    color: white;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(74, 158, 255, 0.2);
+}
+
+.pause-menu button:hover {
+    background: linear-gradient(145deg, #5ba8ff, #3d8ce8);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(74, 158, 255, 0.3);
+}
+
+.pause-menu button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(74, 158, 255, 0.2);
+}
+`;
+
+let isPaused = false;
+
+function initPauseMenu() {
+    // Insert HTML and CSS
+    document.body.insertAdjacentHTML('beforeend', pauseMenuHTML);
+    const style = document.createElement('style');
+    style.textContent = pauseMenuCSS;
+    document.head.appendChild(style);
+
+    const pauseMenu = document.getElementById('pause-menu');
+    const resumeButton = document.getElementById('resume-button');
+    const bloomToggle = document.getElementById('bloom-toggle');
+    const shadowQuality = document.getElementById('shadow-quality');
+    const dayNightToggle = document.getElementById('daynight-toggle');
+    const masterVolume = document.getElementById('master-volume');
+    const sfxVolume = document.getElementById('sfx-volume');
+
+    // Event handlers
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            togglePause();
+        }
+    });
+
+    resumeButton.addEventListener('click', togglePause);
+
+    // Preference handlers
+    bloomToggle.addEventListener('change', (e) => {
+        bloomPass.enabled = e.target.checked;
+    });
+
+    shadowQuality.addEventListener('change', (e) => {
+        switch(e.target.value) {
+            case 'low':
+                sunLight.shadow.mapSize.width = 1024;
+                sunLight.shadow.mapSize.height = 1024;
+                break;
+            case 'medium':
+                sunLight.shadow.mapSize.width = 2048;
+                sunLight.shadow.mapSize.height = 2048;
+                break;
+            case 'high':
+                sunLight.shadow.mapSize.width = 4096;
+                sunLight.shadow.mapSize.height = 4096;
+                break;
+        }
+        sunLight.shadow.map.dispose();
+        sunLight.shadow.map = null;
+    });
+
+
+    const timeCycle = document.getElementById('time-cycle');
+    timeCycle.value = localStorage.getItem('timeCycle') || 'cycle';
+
+    timeCycle.addEventListener('change', (e) => {
+        localStorage.setItem('timeCycle', e.target.value);
+        timeOfDay = e.target.value === 'day' ? 0.25 : e.target.value === 'night' ? 0.75 : timeOfDay;
+    });
+
+    masterVolume.addEventListener('input', (e) => {
+        const volume = e.target.value / 100;
+        // Implement master volume control
+    });
+
+    sfxVolume.addEventListener('input', (e) => {
+        const volume = e.target.value / 100;
+        cashSound.volume = volume;
+        NOSound.volume = volume;
+    });
+}
+
+function togglePause() {
+    isPaused = !isPaused;
+    const pauseMenu = document.getElementById('pause-menu');
+
+    if (isPaused) {
+        pauseMenu.classList.remove('hidden');
+        // Pause game logic
+        // Stop animations, timers, etc.
+    } else {
+        pauseMenu.classList.add('hidden');
+        // Resume game logic
+        // Resume animations, timers, etc.
+    }
+}
+
+
+// Initialize pause menu
+initPauseMenu();
 
 window.addEventListener('resize', () => {
     const width = window.innerWidth;
@@ -89,7 +324,7 @@ controls.minPolarAngle = Math.PI * 0.04;
 controls.maxPolarAngle = Math.PI * 0.48;
 controls.enablePan = false;
 controls.minDistance = 2;
-controls.maxDistance = 150;
+controls.maxDistance = 250;
 
 const textureLoader = new THREE.TextureLoader();
 const pmremGenerator = new THREE.PMREMGenerator(renderer);
@@ -102,13 +337,30 @@ const envTexture = textureLoader.load('textures/hdr.hdr', (tex) => {
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const renderTarget = new THREE.WebGLRenderTarget(window.innerWidth / 2, window.innerHeight / 2, {
-    minFilter: THREE.LinearFilter,
-    magFilter: THREE.LinearFilter,
-    format: THREE.RGBAFormat,
-});
+const renderTarget = new THREE.WebGLRenderTarget(
+    window.innerWidth,
+    window.innerHeight,
+    {
+        minFilter: THREE.LinearFilter,
+        magFilter: THREE.LinearFilter,
+        format: THREE.RGBAFormat,
+        encoding: THREE.sRGBEncoding,
+        samples: 3 // MSAA
+    }
+);
 composer.setSize(renderTarget.width, renderTarget.height);
-
+const outlinePass = new OutlinePass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    scene,
+    camera
+);
+outlinePass.edgeStrength = 2.5;
+outlinePass.edgeGlow = 0.0;
+outlinePass.edgeThickness = 1.0;
+outlinePass.pulsePeriod = 0;
+outlinePass.visibleEdgeColor.set('#ffffff');
+outlinePass.hiddenEdgeColor.set('#000000');
+composer.addPass(outlinePass);
 
 const sun = new THREE.Mesh(
     new THREE.SphereGeometry(10, 32, 32),
@@ -118,11 +370,22 @@ sun.position.set(200, 300, 200);
 sun.castShadow = true;
 scene.add(sun);
 
+const dayDuration = 20;
+let timeOfDay = 0;
+
+const moon = new THREE.Mesh(
+    new THREE.SphereGeometry(10, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0xbbccff })
+);
+moon.position.set(-200, -300, -200);
+moon.castShadow = true;
+scene.add(moon);
+
 const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
-    1.5, // strength
+    0.5, // strength
     0.4, // radius
-    0.85 // threshold
+    1.5 // threshold
 );
 composer.addPass(bloomPass);
 
@@ -134,19 +397,74 @@ sunLight.shadow.mapSize.height = 2048;
 sunLight.shadow.radius = 4;
 sunLight.shadow.autoUpdate = true;
 sunLight.shadow.camera.near = 10;
-sunLight.shadow.camera.far = 1000;
+sunLight.shadow.camera.far = 3000;
 sunLight.shadow.camera.left = -100;
 sunLight.shadow.camera.right = 100;
 sunLight.shadow.camera.top = 100;
 sunLight.shadow.camera.bottom = -100;
-sunLight.shadow.bias = -0.0001;
+sunLight.shadow.bias = -0.00005;
 sunLight.shadow.camera.updateProjectionMatrix();
 
 scene.add(sunLight);
 
-const hemiColor = new THREE.HemisphereLight(0xddeeff, 0x444422, 3);
-scene.add(hemiColor);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.05);
+scene.add(ambientLight);
 
+const watergeo = new THREE.PlaneGeometry(2000, 2000, 100, 100);
+watergeo.rotateX(-Math.PI / 2);
+
+const waterShaderMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+        uColor: { value: new THREE.Color(0x06ad9b) },
+        uFadeDistance: { value: 1000.0 } // Adjust fade distance
+    },
+    vertexShader: `
+        varying vec3 vPosition;
+        void main() {
+            vPosition = position;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform vec3 uColor;
+        uniform float uFadeDistance;
+        varying vec3 vPosition;
+        void main() {
+            float distanceFromCenter = length(vPosition.xz);
+            float alpha = 1.0 - smoothstep(0.0, uFadeDistance, distanceFromCenter);
+            gl_FragColor = vec4(uColor, alpha);
+        }
+    `,
+    transparent: true
+});
+
+const water = new THREE.Mesh(watergeo, waterShaderMaterial)
+
+water.position.set(0, -13, 0);
+water.receiveShadow = true;
+scene.add(water);
+
+function updateWaterAnimation(deltaTime) {
+    const waveScaling = 30;
+    const time = clock.getElapsedTime();
+
+    for (let i = 0; i < watergeo.attributes.position.count; i++) {
+        const x = watergeo.attributes.position.getX(i);
+        const z = watergeo.attributes.position.getZ(i);
+
+        const distance = Math.sqrt(x * x + z * z);
+        const scaleFactor = 1 + (distance / 1000) * waveScaling;
+
+        const frequency = 0.01;
+        const y = noise.simplex3(x * frequency, z * frequency, time * 0.1) * scaleFactor;
+
+        watergeo.attributes.position.setY(i, y);
+    }
+    watergeo.attributes.position.needsUpdate = true;
+}
+
+
+scene.background = new THREE.Color(0x87ceeb);
 
 const skyGeo = new THREE.SphereGeometry(5000, 25, 25);
 const skyMat = new THREE.MeshBasicMaterial({ color: 0x87ceeb, side: THREE.BackSide });
@@ -156,11 +474,12 @@ scene.add(sky);
 buildWorld(scene)
 
 const loader = new GLTFLoader();
+
 loader.load(
-    'maps/map.glb', // Path to the GLB file
+    'maps/map.glb',
     (gltf) => {
         const map = gltf.scene;
-        map.position.set(0, -5, 0);
+        map.position.set(0, -14.3, 0);
         map.scale.set(25, 25, 25);
         scene.add(map);
         console.log('Map loaded successfully');
@@ -169,6 +488,8 @@ loader.load(
             if (child.isMesh) {
                 child.castShadow = true;
                 child.receiveShadow = true;
+
+
             }
         });
     },
@@ -195,7 +516,7 @@ floorMesh.material.polygonOffset = true;
 floorMesh.material.polygonOffsetFactor = 1; // Adjust as needed
 floorMesh.material.polygonOffsetUnits = 1;
 scene.add(floorMesh);
-const aoMap = textureLoader.load('textures/AO.jpg');
+
 
 
 const geometry = new THREE.BoxGeometry(10, 10, 10);
@@ -204,12 +525,8 @@ geometry.setAttribute('uv2', new THREE.BufferAttribute(geometry.attributes.uv.ar
 const material = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
     roughness: 0.35,
-    metalness: 0.1,
-    clearcoat: 0.4,
-    clearcoatRoughness: 0.2,
-    reflectivity: 0.3,
-    depthWrite: true, // Ensure depth is written
-    depthTest: true,  // Ensure depth testing
+    clearcoat: 1,
+    clearcoatRoughness: 1,
 });
 const boxMesh = new THREE.Mesh(geometry, material);
 boxMesh.position.z = 10;
@@ -233,9 +550,6 @@ function cleanupScene() {
         }
     }
 }
-
-
-
 
 let playerHealth = 100;
 const healthBar = document.getElementById('health-bar');
@@ -776,38 +1090,142 @@ function setUnitLevel(unitIndex, newLevel) {
     }
 }
 
-initRaycasting(scene, camera, floorMesh, hoverableObjects, handleObjectClick, units);
 
-const dayDuration = 120;
-let timeOfDay = 0;
+let currentlyHighlighted = null;
+
+function handleObjectHover(object) {
+    if (currentlyHighlighted !== object) {
+        if (currentlyHighlighted) {
+            outlinePass.selectedObjects = [];
+        }
+        if (object) {
+            outlinePass.selectedObjects = [object];
+        }
+        currentlyHighlighted = object;
+    }
+}
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+window.addEventListener('mousemove', (event) => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(hoverableObjects, true);
+
+    if (intersects.length > 0) {
+        handleObjectHover(intersects[0].object);
+    } else {
+        handleObjectHover(null);
+    }
+});
+
+initRaycasting(scene, camera, floorMesh, hoverableObjects, (position, object) => {
+    handleObjectClick(position, object);
+    handleObjectHover(object);
+}, units);
+
+const moonLight = new THREE.DirectionalLight(0xfff2cc, 0.1);
+moonLight.position.copy(moon.position)
+moonLight.castShadow = true;
+moonLight.shadow.mapSize.width = 2028;
+moonLight.shadow.mapSize.height = 2048;
+moonLight.shadow.radius = 4;
+moonLight.shadow.autoUpdate = true;
+moonLight.shadow.camera.near = 10;
+moonLight.shadow.camera.far = 3000;
+moonLight.shadow.camera.left = -100;
+moonLight.shadow.camera.right = 100;
+moonLight.shadow.camera.top = 100;
+moonLight.shadow.camera.bottom = -100;
+moonLight.shadow.bias = -0.00005;
+moonLight.shadow.camera.updateProjectionMatrix();
+scene.add(moonLight);
+
+
+
+function createStars() {
+    const starGeometry = new THREE.BufferGeometry();
+    const starMaterial = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 0.5,
+        sizeAttenuation: true,
+        transparent: true,
+        opacity: 0
+    });
+
+    const starCount = 1000;
+    const positions = new Float32Array(starCount * 3);
+
+    for (let i = 0; i < starCount; i++) {
+        positions[i * 3] = (Math.random() - 0.5) * 5000; // X
+        positions[i * 3 + 1] = Math.random() * 2000; // Y
+        positions[i * 3 + 2] = (Math.random() - 0.5) * 5000; // Z
+    }
+
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    return stars;
+}
+
+const stars = createStars();
+scene.add(stars);
 
 function updateDayNightCycle(deltaTime) {
-    timeOfDay += deltaTime / dayDuration;
-    if (timeOfDay > 1) timeOfDay -= 1;
+    const cycleMode = localStorage.getItem('timeCycle') || 'cycle';
 
-    const sunIntensity = Math.max(0.3, Math.sin(timeOfDay * Math.PI * 2));
+    if (cycleMode === 'cycle') {
+        timeOfDay += deltaTime / dayDuration;
+        if (timeOfDay > 1) timeOfDay -= 1;
+    } else if (cycleMode === 'day') {
+        timeOfDay = 0.20; // Midday
+    } else if (cycleMode === 'night') {
+        timeOfDay = 0.95; // Midnight
+    }
 
-    const skyColor = new THREE.Color().lerpColors(
-        new THREE.Color(0x111144), // Brighter night color
-        new THREE.Color(0x87ceeb), // Day
-        sunIntensity
-    );
+    const angle = timeOfDay * Math.PI * 2;
 
-    // Update sun
-    sunLight.intensity = sunIntensity;
     sunLight.position.set(
-        Math.cos(timeOfDay * Math.PI * 2) * 300,
-        Math.sin(timeOfDay * Math.PI * 2) * 450,
-        300
+        Math.cos(angle) * 300,
+        Math.sin(angle) * 300,
+        0
     );
     sun.position.copy(sunLight.position);
 
+    moonLight.position.set(
+        Math.cos(angle + Math.PI) * 300,
+        Math.sin(angle + Math.PI) * 300,
+        0
+    );
+    moon.position.copy(moonLight.position);
 
+    sun.visible = sun.position.y > -25;
+    moon.visible = moon.position.y > -25;
 
-    // Update environment
-    hemiColor.intensity = sunIntensity * 0.6;
+    const sunIntensity = Math.max(0, Math.sin(angle)) * 0.8;
+    const moonIntensity = Math.max(0, Math.sin(angle + Math.PI)) * 0.4;
+
+    sunLight.intensity = sunIntensity;
+    moonLight.intensity = moonIntensity;
+
+    const skyColor = new THREE.Color().lerpColors(
+        new THREE.Color(0x000022),
+        new THREE.Color(0x87ceeb),
+        Math.max(sunIntensity, 0.1)
+    );
     scene.background = skyColor;
-    bloomPass.strength = 1.5 * sunIntensity + 0.2;
+
+    stars.material.opacity = 1 - sunIntensity;
+
+    const dayWaterColor = new THREE.Color(0x055e55);
+    const nightWaterColor = new THREE.Color(0x06ad9b);
+    waterShaderMaterial.uniforms.uColor.value = new THREE.Color().lerpColors(
+        nightWaterColor,
+        dayWaterColor,
+        sunIntensity
+    );
 }
 
 const speedFactor = 1;
@@ -823,8 +1241,12 @@ function draw() {
     frameCount++;
 
 
+
     if (frameCount % 2 === 0) {
         updateDayNightCycle(deltaTime);
+
+        updateWaterAnimation(deltaTime);
+
     }
     if (currentTime - lastFPSUpdate >= 1000) {
         currentFPS = frameCount;
@@ -859,7 +1281,9 @@ function draw() {
 
 function animate() {
     requestAnimationFrame(animate);
-    draw();
+    if (!isPaused) {
+        draw();
+    }
 }
 animate();
 

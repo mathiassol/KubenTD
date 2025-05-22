@@ -12,12 +12,10 @@ export function initRaycasting(scene, camera, floorMesh, hoverableObjects, handl
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObjects(hoverableObjects, true);
 
-        // Find first unit intersection
         const unitIntersect = intersects.find(intersect => {
             return units.some(u => u.mesh === intersect.object);
         });
 
-        // Handle hover states
         if (unitIntersect) {
             const hoveredUnit = units.find(u => u.mesh === unitIntersect.object);
             if (hoveredUnit !== lastHoveredUnit) {
