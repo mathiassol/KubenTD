@@ -16,9 +16,6 @@
   * magic
   * steal
 
-to damage invisible enemies you need a tower with the invisible trait. The same goes for steal where the tower needs penetration trait. Magic enemies reduce damage from non-magic towers, and magic towers deal normal damage to magic enemies.
-
-
 # Technologies Used
 - Three.js for 3D rendering
 - JavaScript 
@@ -26,16 +23,36 @@ to damage invisible enemies you need a tower with the invisible trait. The same 
 - NPM for package management
 
 # Installation
+
+for the exe build, just open the kubenTD.exe file and it will start the game.
+for the source code:
+
+-have node.js installed
 1. Clone the repository
-2. Run `npm install`
-3. Open `index.html` in a web browser
+2. Open cmd and use `cd path/to/kubenTD/`
+3. Run `npm install`
+4. type `npm start` to start the project
+
 
 # Changelog
 
+## v0.3.0
+- Added massive visual improvements
+- post-processing effects
+  - bloom 
+  - water shaders
+    - fragment shader
+    - vertex shader
+- added some particle effects
+ - explosion
+ - projectile
+- created more 3D models
+  - units
+  - enemy
+  - map
+
 ## v0.2.1
 - Added settings menu with display options
-- Implemented V-sync toggle
-- Added fullscreen/windowed mode support
 - Fixed unit purchase system bugs
 - Improved menu navigation
 
@@ -84,19 +101,21 @@ to damage invisible enemies you need a tower with the invisible trait. The same 
 - [x] Advanced targeting mechanics
 
 ## Phase 3 - Polish & Balance (current)
-- [ ] Visual effects
-- [ ] Sound effects and music
+- [x] Visual effects
+- [-] Sound effects and music
 - [x] Game balance adjustments
 - [x] Performance optimization
 - [x] UI/UX improvements
-- [ ] show if unit is under development / not finished
-- [ ] exsplane about number of units and limitations
-- [ ] use color for established practices to comunicte unavaible functionality
-- [ ] craeate a game intro with a brif explenation of the game
+- [x] create a game intro with a brief explanation of the game
 
 # Log
 ## log 8 - polish, bug fixes and 3D design
-- 
+- added a lot of polish to the game
+- vfx like explosions, projectiles and some particle effects
+- added a lot of 3D models
+- added a lot of post-processing effects
+- added a lot of shaders
+- added a lot of bug fixes
 
 ## log 7 - ui, SFX, 3D enchantments
 - upgraded all ui elements
