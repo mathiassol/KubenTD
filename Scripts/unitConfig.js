@@ -1,8 +1,8 @@
 const unitConfig = {
     gunnar: {  // Basic starter unit - hybrid damage but weaker stats
         price: 250,
-        baseStats: { damage: 1, range: 45, attackSpeed: 1.1 },
-        target: 'hybrid',
+        baseStats: { damage: 8, range: 45, attackSpeed: 1.1 },
+        target: 'ground',
         invisible: false,
         magic: false,
         projectile: true,
@@ -61,7 +61,7 @@ const unitConfig = {
     },
     sniper: {  // Physical damage, air target specialist
         price: 350,
-        baseStats: { damage: 12, range: 60, attackSpeed: 0.2 },
+        baseStats: { damage: 12, range: 60, attackSpeed: 3 },
         target: 'air',
         invisible: false,
         magic: false,

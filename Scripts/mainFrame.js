@@ -5,16 +5,12 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
-import { FireballExplosion } from './FireballExplosion.js';
-
-
 const noise = new Noise(Math.random());
 import {initRaycasting} from './raycasterUtils.js';
-
 import Enemy from './enemy.js';
 import Unit from './unit.js';
 import {unitConfig} from './unitConfig.js';
-import {easyWaveConfig, normalWaveConfig, hardWaveConfig} from "./enemyConfig.js";
+import {waveConfig} from "./enemyConfig.js";
 import {DamageText} from "./damageText.js";
 const cashSound = new Audio('SFX/cash.ogg');
 cashSound.volume = 0.1;
@@ -348,6 +344,10 @@ const tutorialData = [
     {
         image: 'tutorial/page4.png',
         text: 'Start waves using the button in the bottom middle. Defend your base and good luck!'
+    },
+    {
+        image: 'tutorial/page5.png',
+        text: 'Warning! the game has not been balanced yet. Expect unbalanced gameplay. Also some parts of this game take up a good chunk of your preformace, once you have reviewed my amazing postprocessing you can turn it of in the preferences menu.'
     }
 ];
 
@@ -808,54 +808,9 @@ let waveCount = 0;
 let enemies = {};
 let enemyInterval = null;
 
-// Wave index
-
-async function getSettingsValue(section, key) {
-    try {
-        const response = await fetch('settings.ini');
-        const text = await response.text();
-        const lines = text.split('\n');
-
-        let currentSection = '';
-
-        for (const line of lines) {
-            const trimmedLine = line.trim();
-            if (trimmedLine.startsWith('[') && trimmedLine.endsWith(']')) {
-                currentSection = trimmedLine.slice(1, -1);
-            } else if (currentSection === section && trimmedLine.includes('=')) {
-                const [settingKey, value] = trimmedLine.split('=').map(s => s.trim());
-                if (settingKey === key) {
-                    return value;
-                }
-            }
-        }
-        return null;
-    } catch (error) {
-        console.error('Error reading settings:', error);
-        return null;
-    }
-}
-
-let waveConfig = easyWaveConfig;
-
-getSettingsValue('game', 'difficulty').then(difficulty => {
-    if (difficulty === 'easy') {
-        waveConfig = easyWaveConfig;
-        cash = 1000;
-        const cashBalanceElement = document.getElementById('cash-balance');
-        cashBalanceElement.innerText = `Cash: ${cash}`;
-    }if (difficulty === 'normal') {
-        waveConfig = normalWaveConfig;
-        cash = 800;
-        const cashBalanceElement = document.getElementById('cash-balance');
-        cashBalanceElement.innerText = `Cash: ${cash}`;
-    }if (difficulty === 'hard') {
-        waveConfig = hardWaveConfig;
-        cash = 600;
-        const cashBalanceElement = document.getElementById('cash-balance');
-        cashBalanceElement.innerText = `Cash: ${cash}`;
-    }
-});
+cash = 1000;
+const cashBalanceElement = document.getElementById('cash-balance');
+cashBalanceElement.innerText = `Cash: ${cash}`;
 
 function spawnEnemy(path, delay, speed, health, type, invisible, magic, steal, cash) {
     setTimeout(() => {
@@ -1533,7 +1488,10 @@ function draw() {
 
     const scaledDelta = deltaTime * speedFactor;
     for (let id in enemies) {
-        enemies[id].update(deltaTime * gameSpeed, onEnemyReachedEnd, camera);
+        const enemy = enemies[id];
+        if (enemy && enemy.enemy && enemy.health > 0) {
+            enemy.update(deltaTime * gameSpeed, onEnemyReachedEnd, camera);
+        }
     }
     units.forEach(unit => {
         if (unit && unit.mesh && unit.mesh.visible) {

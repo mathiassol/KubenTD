@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { AnimationMixer } from 'three';
 
 import {
     cash,
@@ -33,6 +32,7 @@ export default class Enemy {
         this.isMoving = true;
         this.id = `enemy_${enemyCounter++}`;
         this.modelLoaded = false;
+        this.dead = false;
 
 
         const tempGeometry = new THREE.SphereGeometry(2, 16, 16);
@@ -137,11 +137,9 @@ export default class Enemy {
 
     takeDamage(amount) {
         this.health -= amount;
-        if (this.health < 0) this.health = 0;
-        this.updateHealthBar();
-
         if (this.health <= 0) {
-            this.die();
+            this.health = 0;
+            this.die(); // or handle removal
         }
     }
 
@@ -152,6 +150,7 @@ export default class Enemy {
         if (this.enemy.geometry) this.enemy.geometry.dispose();
         if (this.enemy.material) this.enemy.material.dispose();
 
+        this.dead = true;
         this.isMoving = false;
     }
 

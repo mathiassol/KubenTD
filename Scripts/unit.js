@@ -269,15 +269,22 @@ export default class Unit {
                             damageDealt *= 0.7;
                         }
 
-                        this.currentTarget.health -= damageDealt;
+                        console.log(this.currentTarget.id);
 
-                        const damageText = new DamageText(this.scene, damageDealt.toString(), this.currentTarget.enemy);
-                        this.damageTexts.push(damageText);
+                        for (let id in enemies) {
+                            const enemy = enemies[id];
+                            if(enemy.id === this.currentTarget.id) {
+                                enemy.takeDamage(damageDealt);
+                                console.log(enemy.health)
+                                const damageText = new DamageText(this.scene, damageDealt.toString(), this.currentTarget.enemy);
+                                this.damageTexts.push(damageText);
 
-                        if (this.currentTarget.health <= 0) {
-                            this.scene.remove(this.currentTarget.enemy);
-                            delete enemies[this.currentTarget.id];
-                            this.currentTarget = null;
+                                if(enemy.health <= 0) {
+                                    this.scene.remove(this.currentTarget.enemy);
+                                    delete enemies[this.currentTarget.id];
+                                    this.currentTarget = null;
+                                }
+                            }
                         }
                     };
 
@@ -287,34 +294,44 @@ export default class Unit {
                         this.projectiles.push(new BulletProjectile(this.scene, start, end, () => {
                             applyDamage();
                         }));
-                    } else if (this.type === 'rocketMan') {
+                    }
+                    else if (this.type === 'rocketMan') {
                         setTimeout(() => {
-                            const splashRadius = 8;
-                            if (this.currentTarget && this.currentTarget.enemy) {
-                                const pos = this.currentTarget.enemy.position.clone();
+                            const start = this.mesh.position.clone();
+                            const end = this.currentTarget.enemy.position.clone();
+                            this.projectiles.push(new BulletProjectile(this.scene, start, end, () => {
+                                setTimeout(() => {
+                                    const splashRadius = 8;
+                                    if (this.currentTarget && this.currentTarget.enemy) {
+                                        const pos = this.currentTarget.enemy.position.clone();
 
-                                Object.values(enemies).forEach(targetEnemy => {
-                                    if (targetEnemy && targetEnemy.enemy) {
-                                        const dist = pos.distanceTo(targetEnemy.enemy.position);
-                                        if (dist <= splashRadius) {
-                                            let splashDamage = this.damage;
-                                            splashDamage *= 1 - (dist / splashRadius) * 0.5;
+                                        Object.values(enemies).forEach(targetEnemy => {
+                                            if (targetEnemy && targetEnemy.enemy) {
+                                                const dist = pos.distanceTo(targetEnemy.enemy.position);
+                                                if (dist <= splashRadius) {
+                                                    let splashDamage = this.damage;
+                                                    splashDamage *= 1 - (dist / splashRadius) * 0.5;
 
-                                            targetEnemy.health -= splashDamage;
-                                            const damageText = new DamageText(this.scene, splashDamage.toString(), targetEnemy.enemy);
-                                            this.damageTexts.push(damageText);
+                                                    targetEnemy.takeDamage(splashDamage);
+                                                    const damageText = new DamageText(this.scene, splashDamage.toString(), targetEnemy.enemy);
+                                                    this.damageTexts.push(damageText);
 
-                                            if (targetEnemy.health <= 0) {
-                                                this.scene.remove(targetEnemy.enemy);
-                                                delete enemies[targetEnemy.id];
+                                                    if (targetEnemy.health <= 0) {
+                                                        this.scene.remove(targetEnemy.enemy);
+                                                        delete enemies[targetEnemy.id];
+                                                        if (this.currentTarget && this.currentTarget.id === targetEnemy.id) {
+                                                            this.currentTarget = null;
+                                                        }
+                                                    }
+                                                }
                                             }
-                                        }
-                                    }
-                                });
+                                        });
 
-                                this.explosions.push(new FireballExplosion(this.scene, pos));
-                            }
-                        }, 700);
+                                        this.explosions.push(new FireballExplosion(this.scene, pos));
+                                    }
+                                }, 100);
+                            }));
+                        }, 600);
                     } else {
                         applyDamage();
                     }

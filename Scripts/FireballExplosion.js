@@ -3,7 +3,7 @@ import * as THREE from 'three';
 const FIREBALL_COLORS = [0xff4500, 0xffa500, 0xffff00, 0xff6a00, 0xff0000];
 
 export class FireballExplosion {
-    constructor(scene, position, count = 40) {
+    constructor(scene, position, count = 60) {
         this.scene = scene;
         this.cubes = [];
         this.velocities = [];

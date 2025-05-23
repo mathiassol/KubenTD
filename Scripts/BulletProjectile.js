@@ -13,7 +13,7 @@ export class BulletProjectile {
         const bulletStart = start.clone().add(offset);
 
         const geometry = new THREE.BoxGeometry(0.4, 0.4, 3);
-        const material = new THREE.MeshBasicMaterial({ color: 0x736c68 });
+        const material = new THREE.MeshBasicMaterial({ color: 0x727773 });
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.copy(bulletStart);
         scene.add(this.mesh);
