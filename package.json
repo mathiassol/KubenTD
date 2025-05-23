@@ -8,8 +8,8 @@
     "dist": "electron-builder"
   },
   "build": {
-    "appId": "com.yourapp.id",
-    "productName": "YourAppName",
+    "appId": "com.KubenTD.id",
+    "productName": "KubenTD",
     "directories": {
       "output": "dist"
     },
