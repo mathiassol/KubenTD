@@ -157,7 +157,7 @@
             position: relative;
             width: 120px;
             height: 100px;
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: transparent;
             border-radius: 5px;
             display: flex;
             flex-direction: column;
@@ -179,8 +179,8 @@
         }
 
         .unit img {
-            width: 40px;
-            height: 40px;
+            width: 100%;
+            height: 100%;
             object-fit: contain;
         }
 
@@ -466,7 +466,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.95);
+            background-color: rgba(0, 0, 0, 1);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -606,6 +606,72 @@
             text-align: center;
             text-shadow: 2px 2px 5px black;
         }
+        .tutorial-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .tutorial-content {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 2rem;
+            border-radius: 16px;
+            width: 80%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        .tutorial-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .tutorial-text {
+            color: white;
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .tutorial-nav {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .tutorial-btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(145deg, #2ef1ad, #15cd8d);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .tutorial-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .tutorial-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        .tutorial-spacer {
+            flex-grow: 1;
+        }
     </style>
 </head>
 <body>
@@ -614,6 +680,19 @@
 <div id="loading-screen">
     <div id="loading-bar-container">
         <div id="loading-bar"></div>
+    </div>
+</div>
+
+<div id="tutorial-screen" class="tutorial-screen">
+    <div class="tutorial-content">
+        <img id="tutorial-image" src="tutorial/page1.png" alt="Tutorial">
+        <p id="tutorial-text" class="tutorial-text">Welcome to the Tower Defense Game! Place towers strategically to defend against incoming waves of enemies.</p>
+        <div class="tutorial-nav">
+            <button id="tutorial-back" class="tutorial-btn" disabled>Back</button>
+            <button id="tutorial-next" class="tutorial-btn">Next</button>
+            <div class="tutorial-spacer"></div>
+            <button id="tutorial-skip" class="tutorial-btn">Skip</button>
+        </div>
     </div>
 </div>
 

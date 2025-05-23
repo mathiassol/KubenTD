@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { AnimationMixer } from 'three';
+
 import {
     cash,
     setCash
@@ -28,13 +31,13 @@ export default class Enemy {
         this.cash = cash;
         this.currentWaypointIndex = 0;
         this.isMoving = true;
-
         this.id = `enemy_${enemyCounter++}`;
-        this.enemyGeometry = new THREE.SphereGeometry(2, 16, 16);
-        this.enemyMaterial = new THREE.MeshLambertMaterial({
-            color: 'red'
-        });
-        this.enemy = new THREE.Mesh(this.enemyGeometry, this.enemyMaterial);
+        this.modelLoaded = false;
+
+
+        const tempGeometry = new THREE.SphereGeometry(2, 16, 16);
+        const tempMaterial = new THREE.MeshLambertMaterial({ visible: false });
+        this.enemy = new THREE.Mesh(tempGeometry, tempMaterial);
 
         if (this.path && this.path.length > 0) {
             const startPosition = this.path[0].clone();
@@ -47,7 +50,27 @@ export default class Enemy {
         }
         this.scene.add(this.enemy);
 
+        const loader = new GLTFLoader();
+        loader.load('./assets/enemy.glb', (gltf) => {
+            this.model = gltf.scene;
+            this.model.scale.set(3.5, 3.5, 3.5);
+            this.model.traverse((child) => {
+                if (child.isMesh) {
+                    child.material.transparent = this.invisible;
+                    child.material.opacity = this.invisible ? 0.5 : 1;
+                }
+            });
+            this.enemy.add(this.model);
 
+            this.mixer = new THREE.AnimationMixer(this.model);
+            const walkAnimation = gltf.animations[0];
+            if (walkAnimation) {
+                this.walkAction = this.mixer.clipAction(walkAnimation);
+                this.walkAction.play();
+                this.walkAction.loop = THREE.LoopRepeat;
+            }
+            this.modelLoaded = true;
+        });
 
         const healthBarGeometry = new THREE.PlaneGeometry(5, 0.5);
         const healthBarMaterial = new THREE.MeshBasicMaterial({
@@ -65,6 +88,12 @@ export default class Enemy {
     update(deltaTime, onEnemyReachedEnd, camera) {
         if (!this.isMoving || isGamePaused) return;
 
+        if (this.mixer && this.modelLoaded) {
+            this.mixer.update(deltaTime);
+        }
+
+        if (!this.path || this.currentWaypointIndex >= this.path.length) return;
+
         let target = this.path[this.currentWaypointIndex];
         if (this.type === 'air') {
             target = target.clone();
@@ -73,14 +102,18 @@ export default class Enemy {
 
         const direction = new THREE.Vector3().subVectors(target, this.enemy.position);
         const distance = direction.length();
+
         if (distance > 0.5) {
             const moveDistance = this.speed * deltaTime;
             const t = Math.min(moveDistance / distance, 1);
             this.enemy.position.lerp(target, t);
-        } else {
-            this.currentWaypointIndex = (this.currentWaypointIndex + 1) % this.path.length;
 
-            if (this.currentWaypointIndex === 0) {
+            if (direction.length() > 0.001) {
+                this.enemy.lookAt(target);
+            }
+        } else {
+            this.currentWaypointIndex++;
+            if (this.currentWaypointIndex >= this.path.length) {
                 this.isMoving = false;
                 onEnemyReachedEnd(this);
             }

@@ -5,10 +5,11 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
+import { FireballExplosion } from './FireballExplosion.js';
+
 
 const noise = new Noise(Math.random());
 import {initRaycasting} from './raycasterUtils.js';
-import {buildWorld} from "./worldElements.js";
 
 import Enemy from './enemy.js';
 import Unit from './unit.js';
@@ -326,9 +327,73 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingScreen.style.opacity = '0';
         setTimeout(() => {
             loadingScreen.style.display = 'none';
-        }, 500);
+            initTutorial();
+        }, 100);
     }, 3000);
 });
+
+const tutorialData = [
+    {
+        image: 'tutorial/page1.png',
+        text: 'Welcome to Kuben Tower Defense! Place towers strategically to defend against incoming waves of enemies.'
+    },
+    {
+        image: 'tutorial/page2.png',
+        text: 'Click on towers in the bottom panel to place them. Use Q to cancel placement.'
+    },
+    {
+        image: 'tutorial/page3.png',
+        text: 'Upgrade your towers by clicking on them and choosing an upgrade path.'
+    },
+    {
+        image: 'tutorial/page4.png',
+        text: 'Start waves using the button in the bottom middle. Defend your base and good luck!'
+    }
+];
+
+let currentPage = 0;
+
+function initTutorial() {
+    const tutorialScreen = document.getElementById('tutorial-screen');
+    const tutorialImage = document.getElementById('tutorial-image');
+    const tutorialText = document.getElementById('tutorial-text');
+    const backBtn = document.getElementById('tutorial-back');
+    const nextBtn = document.getElementById('tutorial-next');
+    const skipBtn = document.getElementById('tutorial-skip');
+
+    function updateTutorialContent() {
+        tutorialImage.src = tutorialData[currentPage].image;
+        tutorialText.textContent = tutorialData[currentPage].text;
+
+        backBtn.disabled = currentPage === 0;
+        nextBtn.textContent = currentPage === tutorialData.length - 1 ? 'Continue' : 'Next';
+    }
+
+    function endTutorial() {
+        tutorialScreen.style.display = 'none';
+        // Start your game here if needed
+    }
+
+    backBtn.addEventListener('click', () => {
+        if (currentPage > 0) {
+            currentPage--;
+            updateTutorialContent();
+        }
+    });
+
+    nextBtn.addEventListener('click', () => {
+        if (currentPage < tutorialData.length - 1) {
+            currentPage++;
+            updateTutorialContent();
+        } else {
+            endTutorial();
+        }
+    });
+
+    skipBtn.addEventListener('click', endTutorial);
+
+    updateTutorialContent();
+}
 
 window.addEventListener('resize', () => {
     const width = window.innerWidth;
@@ -431,10 +496,10 @@ sunLight.shadow.radius = 1;
 sunLight.shadow.autoUpdate = true;
 sunLight.shadow.camera.near = 10;
 sunLight.shadow.camera.far = 1500;
-sunLight.shadow.camera.left = -100;
-sunLight.shadow.camera.right = 100;
-sunLight.shadow.camera.top = 100;
-sunLight.shadow.camera.bottom = -100;
+sunLight.shadow.camera.left = -150;
+sunLight.shadow.camera.right = 150;
+sunLight.shadow.camera.top = 150;
+sunLight.shadow.camera.bottom = -150;
 sunLight.shadow.bias = -0.00005;
 sunLight.shadow.camera.updateProjectionMatrix();
 
@@ -510,9 +575,6 @@ const skyMat = new THREE.MeshBasicMaterial({ color: 0x87ceeb, side: THREE.BackSi
 const sky = new THREE.Mesh(skyGeo, skyMat);
 scene.add(sky);
 
-
-
-buildWorld(scene)
 
 const loader = new GLTFLoader();
 loader.load(
@@ -825,6 +887,7 @@ const observer = new MutationObserver(() => {
 observer.observe(sideMenu, { attributes: true, attributeFilter: ['style'] });
 
 
+
 function showCommander(message) {
     const commanderContainer = document.getElementById('commander-container');
     const chatBubble = document.getElementById('chat-bubble');
@@ -871,29 +934,30 @@ function spawnWave() {
 
     waveInProgress = true;
     updateWaveInfo();
+    let accumulatedDelay = 0;
     let enemiesSpawned = 0;
-    const totalEnemies = waveData.length;
+    const totalEnemies = waveData.filter(e => !e.delay).length;
 
     for (let i = 0; i < waveData.length; i++) {
-        if (Object.keys(enemies).length < 100) {
-            const enemyData = waveData[i];
-            setTimeout(() => {
-                spawnEnemy(path, 0, enemyData.speed, enemyData.health,
-                    enemyData.type, enemyData.invisible, enemyData.magic,
-                    enemyData.steal, enemyData.cash);
-                enemiesSpawned++;
-
-                if (enemiesSpawned === totalEnemies) {
-                    const checkInterval = setInterval(() => {
-                        if (Object.keys(enemies).length === 0) {
-                            waveInProgress = false;
-                            showNotification("Wave completed!");
-                            clearInterval(checkInterval);
-                        }
-                    }, 1000);
-                }
-            }, i * 1000);
+        const entry = waveData[i];
+        if (entry.delay !== undefined) {
+            accumulatedDelay += entry.delay * 1000;
+            continue;
         }
+        setTimeout(() => {
+            spawnEnemy(path, 0, entry.speed, entry.health, entry.type, entry.invisible, entry.magic, entry.steal, entry.cash);
+            enemiesSpawned++;
+            if (enemiesSpawned === totalEnemies) {
+                const checkInterval = setInterval(() => {
+                    if (Object.keys(enemies).length === 0) {
+                        waveInProgress = false;
+                        showNotification("Wave completed!");
+                        clearInterval(checkInterval);
+                    }
+                }, 1000);
+            }
+        }, accumulatedDelay);
+        accumulatedDelay += 3000;
     }
     waveCount++;
 }
@@ -925,7 +989,7 @@ function handleKeyPress(event) {
             input.focus();
         }
     }
-    if (event.key === "Escape") {
+    if (prompt && input) {
         prompt.style.bottom = "-100px";
         input.value = "";
     }
@@ -1053,7 +1117,6 @@ function generateUnitMenu() {
         const unit = unitConfig[unitType];
         const unitElement = document.createElement('div');
         unitElement.className = 'unit';
-        unitElement.dataset.target = unit.target || 'ground';
 
         const unitImage = document.createElement('img');
         unitImage.src = `units/${unitType}.png`;
@@ -1084,11 +1147,9 @@ document.addEventListener('DOMContentLoaded', () => {
 function handleObjectClick(position, object) {
     if (!object) {
         console.warn("Clicked object is undefined.");
-        // Clean up any open menus and range circles
         const sideMenu = document.getElementById('side-menu');
         sideMenu.style.display = 'none';
 
-        // Remove range circles from all units
         units.forEach(unit => {
             if (unit.rangeCircle) {
                 scene.remove(unit.rangeCircle);
@@ -1353,8 +1414,38 @@ let lastFrame = performance.now();
 let currentFPS = 0;
 let waterUpdateTimer = 0;
 
+
+let flyToActive = false;
+let flyToStartTime = 0;
+let flyToDuration = 0.2; // seconds
+let flyFromTarget = new THREE.Vector3();
+let flyToTarget = new THREE.Vector3();
+let flyFromCamera = new THREE.Vector3();
+let flyToCamera = new THREE.Vector3();
 window.addEventListener('contextmenu', (event) => {
     event.preventDefault();
+
+    const sideMenu = document.getElementById('side-menu');
+    sideMenu.style.display = 'none';
+
+    units.forEach(unit => {
+        if (unit.rangeCircle) {
+            scene.remove(unit.rangeCircle);
+            unit.rangeCircle = null;
+        }
+    });
+
+    if (selectedObject) {
+        const selectedEnemy = Object.values(enemies).find(enemy => enemy.enemy.uuid === selectedObject.uuid);
+        if (selectedEnemy) {
+            selectedEnemy.healthBar.visible = false;
+        }
+    }
+
+    selectedObject = null;
+    selectedUUID = null;
+
+    const offset = camera.position.clone().sub(controls.target);
 
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -1364,14 +1455,19 @@ window.addEventListener('contextmenu', (event) => {
 
     if (intersects.length > 0) {
         const point = intersects[0].point;
-        controls.target.set(point.x, point.y, point.z);
-        controls.update();
+        flyFromTarget.copy(controls.target);
+        flyToTarget.copy(point);
+        flyFromCamera.copy(camera.position);
+        flyToCamera.copy(point.clone().add(offset));
+        flyToStartTime = performance.now() / 1000;
+        flyToActive = true;
     }
 });
 
 const keybinds = [
     { icon: '\uE0C0', text: 'Center Cam' },
-    { icon: '\uE0E8', text: 'move camera' },
+    { icon: '\uE0E8', text: 'Move Camera' },
+    { icon: '\uE063', text: 'Pause Menu' },
 ];
 
 const keybindContainer = document.getElementById('keybind-showcase');
@@ -1412,6 +1508,14 @@ function draw() {
     frameCount++;
 
 
+    if (flyToActive) {
+        const now = performance.now() / 1000;
+        const t = Math.min((now - flyToStartTime) / flyToDuration, 1);
+        controls.target.lerpVectors(flyFromTarget, flyToTarget, t);
+        camera.position.lerpVectors(flyFromCamera, flyToCamera, t);
+        if (t >= 1) flyToActive = false;
+    }
+
     waterUpdateTimer += deltaTime;
     if (waterUpdateTimer >= 0.1) {
         updateWaterAnimation(deltaTime);
@@ -1441,6 +1545,18 @@ function draw() {
                 return false;
             });
             unit.update(nearbyEnemies, deltaTime * gameSpeed);
+        }
+    });
+    units.forEach(unit => {
+        if (unit.explosions && unit.explosions.length > 0) {
+            unit.explosions = unit.explosions.filter(explosion => {
+                const stillActive = explosion.update(deltaTime * gameSpeed);
+                if (!stillActive) {
+                    // Remove from scene if needed
+                    explosion.dispose && explosion.dispose();
+                }
+                return stillActive;
+            });
         }
     });
 

@@ -6,6 +6,8 @@ import { Audio, AudioListener } from 'three';
 import { unitConfig } from './unitConfig.js';
 import { cash, setCash } from './mainFrame.js';
 import { DamageText } from './damageText.js';
+import { FireballExplosion } from './FireballExplosion.js';
+import { BulletProjectile } from './BulletProjectile.js';
 
 
 export default class Unit {
@@ -36,6 +38,8 @@ export default class Unit {
         this.initializeSound();
         this.mixer = null;
         this.action = null;
+        this.explosions = [];
+        this.projectiles = [];
 
         this.loader = new GLTFLoader();
         this.loadModel(x, y, z);
@@ -200,7 +204,10 @@ export default class Unit {
     findEnemiesInRange(enemies) {
         return Object.values(enemies).filter(enemy =>
             this.mesh.position.distanceTo(enemy.enemy.position) <= this.range
-        );
+        ).map(enemy => ({
+            ...enemy,
+            distanceToNextPoint: enemy.distanceToNextPoint || 0
+        }));
     }
 
     playShootAnimation() {
@@ -215,29 +222,33 @@ export default class Unit {
             this.mixer.update(deltaTime);
         }
 
+        this.explosions = this.explosions.filter(explosion => {
+            return explosion.update(deltaTime) !== false;
+        });
+        this.projectiles = this.projectiles.filter(p => p.update(deltaTime) !== false);
+
         this.lastAttackTime += deltaTime;
 
         let targets = this.findEnemiesInRange(enemies);
 
         if (targets.length > 0) {
-            targets.sort((a, b) => a.distanceToEnd - b.distanceToEnd);
+            targets.sort((a, b) => b.distanceToNextPoint - a.distanceToNextPoint);
             this.invisible = unitConfig[this.type].invisible;
 
             if (this.type === 'hybrid') {
-                console.log(1)
                 targets = targets.filter(target => this.target === target.type);
             }
-            if (this.invisible === false){
+            if (this.invisible === false) {
                 targets = targets.filter(target => target.invisible === false);
             }
-            if (this.penetration === false){
+            if (this.penetration === false) {
                 targets = targets.filter(target => target.steal === false);
             }
 
             let newTarget = targets[0];
 
             if (newTarget && newTarget.health > 0) {
-                if (!this.currentTarget || newTarget.distanceToEnd < this.currentTarget.distanceToEnd) {
+                if (!this.currentTarget || newTarget.distanceToNextPoint > this.currentTarget.distanceToNextPoint) {
                     this.currentTarget = newTarget;
                 }
 
@@ -251,25 +262,67 @@ export default class Unit {
                     this.playShootSound();
                     this.playShootAnimation();
 
-                    let damageDealt = this.damage;
-                    if (this.magic === false && this.currentTarget.magic === true) {
-                        damageDealt *= 0.7;
-                    }
-                    this.currentTarget.takeDamage(damageDealt);
+                    const applyDamage = () => {
 
-                    const damageText = new DamageText(this.scene, damageDealt.toString(), this.currentTarget.enemy);
-                    this.damageTexts.push(damageText);
+                        let damageDealt = this.damage;
+                        if (this.magic === false && this.currentTarget.magic === true) {
+                            damageDealt *= 0.7;
+                        }
 
-                    if (this.currentTarget.health <= 0) {
-                        this.scene.remove(this.currentTarget.enemy);
-                        delete enemies[this.currentTarget.id];
-                        this.currentTarget = null;
+                        this.currentTarget.health -= damageDealt;
+
+                        const damageText = new DamageText(this.scene, damageDealt.toString(), this.currentTarget.enemy);
+                        this.damageTexts.push(damageText);
+
+                        if (this.currentTarget.health <= 0) {
+                            this.scene.remove(this.currentTarget.enemy);
+                            delete enemies[this.currentTarget.id];
+                            this.currentTarget = null;
+                        }
+                    };
+
+                    if (this.type === 'sniper' || this.type === 'gunnar') {
+                        const start = this.mesh.position.clone();
+                        const end = this.currentTarget.enemy.position.clone();
+                        this.projectiles.push(new BulletProjectile(this.scene, start, end, () => {
+                            applyDamage();
+                        }));
+                    } else if (this.type === 'rocketMan') {
+                        setTimeout(() => {
+                            const splashRadius = 8;
+                            if (this.currentTarget && this.currentTarget.enemy) {
+                                const pos = this.currentTarget.enemy.position.clone();
+
+                                Object.values(enemies).forEach(targetEnemy => {
+                                    if (targetEnemy && targetEnemy.enemy) {
+                                        const dist = pos.distanceTo(targetEnemy.enemy.position);
+                                        if (dist <= splashRadius) {
+                                            let splashDamage = this.damage;
+                                            splashDamage *= 1 - (dist / splashRadius) * 0.5;
+
+                                            targetEnemy.health -= splashDamage;
+                                            const damageText = new DamageText(this.scene, splashDamage.toString(), targetEnemy.enemy);
+                                            this.damageTexts.push(damageText);
+
+                                            if (targetEnemy.health <= 0) {
+                                                this.scene.remove(targetEnemy.enemy);
+                                                delete enemies[targetEnemy.id];
+                                            }
+                                        }
+                                    }
+                                });
+
+                                this.explosions.push(new FireballExplosion(this.scene, pos));
+                            }
+                        }, 700);
+                    } else {
+                        applyDamage();
                     }
+
                     this.lastAttackTime = 0;
                 }
             }
         }
-
 
         this.damageTexts = this.damageTexts.filter(damageText => {
             const isActive = damageText.update();
@@ -301,8 +354,7 @@ export default class Unit {
         circleMesh.position.y = -4.8;
         previewContainer.add(circleMesh);
 
-        // Add range preview
-        const rangeRadius = unitConfig[type].baseStats.range; // Get range from unitConfig
+        const rangeRadius = unitConfig[type].baseStats.range;
         const rangeGeometry = new THREE.CircleGeometry(rangeRadius, 64);
         const rangeMaterial = new THREE.MeshBasicMaterial({
             color: 'green',
@@ -311,7 +363,7 @@ export default class Unit {
         });
         const rangeMesh = new THREE.Mesh(rangeGeometry, rangeMaterial);
         rangeMesh.rotation.x = -Math.PI / 2;
-        rangeMesh.position.y = -4.7; // Slightly above the ground
+        rangeMesh.position.y = -4.7;
         previewContainer.add(rangeMesh);
 
         const canvas = document.createElement('canvas');

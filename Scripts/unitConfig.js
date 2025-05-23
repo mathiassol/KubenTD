@@ -29,9 +29,9 @@ const unitConfig = {
             { damage: 6, range: 25, attackSpeed: -0.02, upgradePrice: 160 },
         ]
     },
-    mage: {  // Magic damage, ground target specialist
+    rocketMan: {  // Magic damage, ground target specialist
         price: 400,
-        baseStats: { damage: 15, range: 40, attackSpeed: 0.3 },
+        baseStats: { damage: 15, range: 40, attackSpeed: 6 },
         target: 'ground',
         invisible: false,
         magic: true,
